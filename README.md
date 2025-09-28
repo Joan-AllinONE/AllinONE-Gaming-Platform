@@ -109,14 +109,8 @@ pnpm build:client  # 仅执行 vite build --outDir dist/static
 
 ## 截图目录约定
 
-- 推荐将产品截图与文案素材放在 `docs/screenshots/` 目录
-  - 示例：`docs/screenshots/platform-dashboard.png`
-  - 子目录按模块组织：`docs/screenshots/platform/`, `docs/screenshots/wallet/`, `docs/screenshots/fund-pool/` 等
-- 在 README 中引用：
-  ```
-  ![平台管理仪表盘](docs/screenshots/platform/dashboard.png)
-  ```
-
+- 推荐将产品截图与文案素材放在 `docs` 目录
+  
 ## 目录结构
 
 ```
@@ -171,12 +165,14 @@ src/
   - `dividend-weights-calculated`：分红权重计算完成
   - `cash-dividend-distributed`：现金分红执行完成
 
-
 ## 贡献
 
 下一步，AllinONE将继续完善平台的安全问题、账户设置、游戏功能等等。
 详情请见CONTRIBUTING.md
 欢迎提交 PR，也欢迎提出建议与意见。
+
+## 网站地址
+https://joan-allinone.github.io/AllinONE-Gaming-Platform/
 
 ## 许可证
 
