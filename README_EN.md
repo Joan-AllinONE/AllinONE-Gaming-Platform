@@ -109,13 +109,7 @@ This project is a pure frontend static site. After building, it can be hosted on
 
 ## Screenshots Directory Convention
 
-- Recommended to place product screenshots and copy materials under `docs/screenshots/`
-  - Example: `docs/screenshots/platform-dashboard.png`
-  - Subdirectories by module: `docs/screenshots/platform/`, `docs/screenshots/wallet/`, `docs/screenshots/fund-pool/`, etc.
-- Reference in README:
-  ```
-  ![Platform Management Dashboard](docs/screenshots/platform/dashboard.png)
-  ```
+- Recommended to place product screenshots and copy materials under `docs`
 
 ## Project Structure
 
@@ -170,6 +164,9 @@ Top-level:
   - `wallet-updated`: wallet update notification
   - `dividend-weights-calculated`: dividend weight calculation complete
   - `cash-dividend-distributed`: cash dividend execution complete
+
+## Website
+https://joan-allinone.github.io/AllinONE-Gaming-Platform/
 
 ## Contributing
 Next, AllinONE will continue to improve platform security, account settings, game features, etc. I also hope people can join in the construction.
