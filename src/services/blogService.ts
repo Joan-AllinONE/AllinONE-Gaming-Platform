@@ -1,8 +1,42 @@
 import { BlogPost, BlogComment, BlogCategory, BlogStats } from '@/types/blog';
 import { sampleBlogPost, sampleComments, sampleBlogPosts } from '@/data/sampleBlogPost';
 
+// --- LocalStorage Persistence ---
+const POSTS_KEY = 'blogPosts';
+const COMMENTS_KEY = 'blogComments';
+
+const loadFromLocalStorage = <T>(key: string, defaults: T[], dateFields: string[] = []): T[] => {
+  try {
+    const stored = localStorage.getItem(key);
+    if (stored) {
+      return JSON.parse(stored).map((item: any) => {
+        const newItem = { ...item };
+        dateFields.forEach(field => {
+          if (newItem[field]) {
+            newItem[field] = new Date(newItem[field]);
+          }
+        });
+        return newItem;
+      });
+    }
+  } catch (e) {
+    console.error(`Failed to load ${key} from localStorage`, e);
+  }
+  return defaults;
+};
+
+const saveToLocalStorage = <T>(key: string, data: T[]) => {
+  try {
+    localStorage.setItem(key, JSON.stringify(data));
+  } catch (e) {
+    console.error(`Failed to save ${key} to localStorage`, e);
+  }
+};
+// --- End LocalStorage Persistence ---
+
+
 // 模拟博客数据
-let blogPosts: BlogPost[] = [
+const defaultBlogPosts: BlogPost[] = [
   sampleBlogPost,
   {
     id: '1',
@@ -147,9 +181,11 @@ AllinONE是一个将游戏娱乐与收益机会完美结合的平台。它既满
     status: 'published'
   }
 ];
+let blogPosts: BlogPost[] = loadFromLocalStorage<BlogPost>(POSTS_KEY, defaultBlogPosts, ['publishDate', 'lastUpdated']);
+
 
 // 模拟评论数据
-let blogComments: BlogComment[] = [
+const defaultBlogComments: BlogComment[] = [
   ...sampleComments,
   {
     id: '1',
@@ -182,6 +218,16 @@ let blogComments: BlogComment[] = [
     likes: 3
   }
 ];
+let blogComments: BlogComment[] = loadFromLocalStorage<BlogComment>(COMMENTS_KEY, defaultBlogComments, ['createdAt']);
+
+// Initialize localStorage if empty
+if (!localStorage.getItem(POSTS_KEY)) {
+  saveToLocalStorage(POSTS_KEY, blogPosts);
+}
+if (!localStorage.getItem(COMMENTS_KEY)) {
+  saveToLocalStorage(COMMENTS_KEY, blogComments);
+}
+
 
 // 模拟博客分类数据
 let blogCategories: BlogCategory[] = [
@@ -278,6 +324,7 @@ export const blogService = {
     if (post) {
       // 增加浏览量
       post.views += 1;
+      saveToLocalStorage(POSTS_KEY, blogPosts);
       return { ...post };
     }
     return null;
@@ -294,7 +341,8 @@ export const blogService = {
       commentCount: 0
     };
     
-    blogPosts.push(newPost);
+    blogPosts.unshift(newPost);
+    saveToLocalStorage(POSTS_KEY, blogPosts);
     return newPost;
   },
   
@@ -310,6 +358,7 @@ export const blogService = {
     };
     
     blogPosts[postIndex] = updatedPost;
+    saveToLocalStorage(POSTS_KEY, blogPosts);
     return updatedPost;
   },
   
@@ -317,7 +366,11 @@ export const blogService = {
   async deleteBlogPost(id: string): Promise<boolean> {
     const initialLength = blogPosts.length;
     blogPosts = blogPosts.filter(post => post.id !== id);
-    return blogPosts.length < initialLength;
+    const success = blogPosts.length < initialLength;
+    if (success) {
+      saveToLocalStorage(POSTS_KEY, blogPosts);
+    }
+    return success;
   },
   
   // 点赞博客
@@ -326,6 +379,7 @@ export const blogService = {
     if (!post) return null;
     
     post.likes += 1;
+    saveToLocalStorage(POSTS_KEY, blogPosts);
     return { ...post };
   },
   
@@ -343,12 +397,14 @@ export const blogService = {
       likes: 0
     };
     
-    blogComments.push(newComment);
+    blogComments.unshift(newComment);
+    saveToLocalStorage(COMMENTS_KEY, blogComments);
     
     // 更新博客评论计数
     const post = blogPosts.find(post => post.id === comment.postId);
     if (post) {
       post.commentCount += 1;
+      saveToLocalStorage(POSTS_KEY, blogPosts);
     }
     
     return newComment;
