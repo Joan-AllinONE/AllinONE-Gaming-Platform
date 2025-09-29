@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>平台管理系统测试</title>
+    <style>
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .test-item {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .success {
+            background-color: #d4edda;
+            border-color: #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background-color: #f8d7da;
+            border-color: #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background-color: #d1ecf1;
+            border-color: #bee5eb;
+            color: #0c5460;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🛠️ 平台管理系统测试</h1>
+        
+        <div class="test-item info">
+            <h3>📋 测试说明</h3>
+            <p>本页面用于测试修复后的平台管理系统是否正常工作</p>
+            <p><strong>主网站地址：</strong> <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>
+        </div>
+
+        <div class="test-item success">
+            <h3>✅ 修复内容</h3>
+            <ul>
+                <li>已添加 PlatformManagementProvider 到 App.tsx</li>
+                <li>所有路由现在都被正确的 Context Provider 包裹</li>
+                <li>平台管理相关组件和服务已验证存在</li>
+                <li>TypeScript 编译检查通过</li>
+            </ul>
+        </div>
+
+        <div class="test-item" id="test-results">
+            <h3>🧪 测试步骤</h3>
+            <ol>
+                <li>
+                    <strong>访问主页</strong>
+                    <p>在新标签页中打开 <a href="http://localhost:3000" target="_blank">http://localhost:3000</a></p>
+                    <p>检查主页是否正常加载，没有白屏或错误</p>
+                </li>
+                <li>
+                    <strong>导航到平台管理</strong>
+                    <p>在主页顶部导航栏中找到"平台管理"链接并点击</p>
+                    <p>或直接访问 <a href="http://localhost:3000/platform-management" target="_blank">http://localhost:3000/platform-management</a></p>
+                </li>
+                <li>
+                    <strong>检查平台管理功能</strong>
+                    <p>验证以下标签页是否正常显示：</p>
+                    <ul>
+                        <li>平台数据 - 显示 A币、O币、算力等数据</li>
+                        <li>参数管理 - 显示平台参数列表</li>
+                        <li>投票决策 - 显示投票列表</li>
+                        <li>成员管理 - 显示成员列表</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-item">
+            <h3>🔧 如果仍有问题</h3>
+            <p>如果平台管理系统仍不能正常工作，请：</p>
+            <ol>
+                <li>按 F12 打开浏览器开发者工具</li>
+                <li>查看控制台(Console)标签页中的错误信息</li>
+                <li>将错误信息截图或复制给我</li>
+            </ol>
+            <button onclick="checkBrowserSupport()">检查浏览器支持</button>
+            <button onclick="testLocalStorage()">测试本地存储</button>
+        </div>
+
+        <div class="test-item" id="browser-info">
+            <h3>📊 浏览器信息</h3>
+            <p>加载中...</p>
+        </div>
+    </div>
+
+    <script>
+        // 显示浏览器信息
+        function displayBrowserInfo() {
+            const browserInfo = document.getElementById('browser-info');
+            const info = `
+                <h3>📊 浏览器信息</h3>
+                <p><strong>用户代理：</strong> ${navigator.userAgent}</p>
+                <p><strong>平台：</strong> ${navigator.platform}</p>
+                <p><strong>语言：</strong> ${navigator.language}</p>
+                <p><strong>支持 ES6：</strong> ${typeof Symbol !== 'undefined' ? '✅' : '❌'}</p>
+                <p><strong>支持 LocalStorage：</strong> ${typeof Storage !== 'undefined' ? '✅' : '❌'}</p>
+            `;
+            browserInfo.innerHTML = info;
+        }
+
+        function checkBrowserSupport() {
+            const features = [
+                { name: 'ES6 Modules', supported: typeof Symbol !== 'undefined' },
+                { name: 'Fetch API', supported: typeof fetch !== 'undefined' },
+                { name: 'Promise', supported: typeof Promise !== 'undefined' },
+                { name: 'LocalStorage', supported: typeof Storage !== 'undefined' },
+                { name: 'CSS Grid', supported: CSS.supports('display', 'grid') }
+            ];
+
+            let report = '🔍 浏览器支持检查结果：\n\n';
+            features.forEach(feature => {
+                report += `${feature.supported ? '✅' : '❌'} ${feature.name}\n`;
+            });
+
+            alert(report);
+        }
+
+        function testLocalStorage() {
+            try {
+                localStorage.setItem('test', 'test');
+                localStorage.removeItem('test');
+                alert('✅ LocalStorage 测试成功');
+            } catch (e) {
+                alert('❌ LocalStorage 测试失败: ' + e.message);
+            }
+        }
+
+        // 页面加载时显示浏览器信息
+        document.addEventListener('DOMContentLoaded', displayBrowserInfo);
+    </script>
+</body>
+</html>
