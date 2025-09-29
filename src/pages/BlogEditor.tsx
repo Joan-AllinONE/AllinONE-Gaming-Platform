@@ -275,10 +275,7 @@ const BlogEditor: React.FC = () => {
                     onClick={() => {
                       if (!imageUrl.trim()) return;
                       const imgTag = `<img src="${imageUrl.trim()}" alt="" style="max-width:100%; height:auto;" />`;
-                      setContent(prev => prev + (prev.endsWith('
-') ? '' : '
-') + imgTag + '
-');
+                      setContent(prev => prev + (prev.endsWith('\n') ? '' : '\n') + imgTag + '\n');
                       setImageUrl('');
                     }}
                     className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
@@ -296,10 +293,7 @@ const BlogEditor: React.FC = () => {
                       reader.onload = () => {
                         const dataUrl = reader.result as string;
                         const imgTag = `<img src="${dataUrl}" alt="" style="max-width:100%; height:auto;" />`;
-                        setContent(prev => prev + (prev.endsWith('
-') ? '' : '
-') + imgTag + '
-');
+                        setContent(prev => prev + (prev.endsWith('\n') ? '' : '\n') + imgTag + '\n');
                         e.target.value = '';
                       };
                       reader.readAsDataURL(file);
