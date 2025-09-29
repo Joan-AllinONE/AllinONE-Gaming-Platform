@@ -3,6 +3,7 @@ import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useBlog } from '@/contexts/BlogContext';
 import { useUserData } from '@/contexts/UserDataContext';
 import { BlogPost, BlogComment } from '@/types/blog';
+import DOMPurify from 'dompurify';
 
 const BlogDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -219,11 +220,13 @@ const BlogDetail: React.FC = () => {
                 {/* 使用Markdown渲染，这里简化处理，直接使用pre标签 */}
                 <div 
                   dangerouslySetInnerHTML={{ 
-                    __html: post.content
+                    __html: DOMPurify.sanitize(
+                      post.content
                       .replace(/^# (.*$)/gm, '<h1>$1</h1>')
                       .replace(/^## (.*$)/gm, '<h2>$1</h2>')
                       .replace(/^### (.*$)/gm, '<h3>$1</h3>')
                       .replace(/\n/g, '<br />')
+                    )
                   }} 
                 />
               </div>

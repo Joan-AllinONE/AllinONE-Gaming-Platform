@@ -14,6 +14,7 @@ const BlogEditor: React.FC = () => {
   const [content, setContent] = useState<string>('');
   const [summary, setSummary] = useState<string>('');
   const [coverImage, setCoverImage] = useState<string>('');
+  const [imageUrl, setImageUrl] = useState<string>('');
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState<string>('');
   const [status, setStatus] = useState<'draft' | 'published'>('draft');
@@ -259,16 +260,64 @@ const BlogEditor: React.FC = () => {
                 <label htmlFor="content" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
                   内容 <span className="text-red-500">*</span>
                 </label>
+
+                {/* 图片插入工具栏 */}
+                <div className="flex flex-wrap items-center gap-2 mb-3">
+                  <input
+                    type="text"
+                    placeholder="图片URL，例如 https://..."
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
+                    className="flex-grow bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!imageUrl.trim()) return;
+                      const imgTag = `<img src="${imageUrl.trim()}" alt="" style="max-width:100%; height:auto;" />`;
+                      setContent(prev => prev + (prev.endsWith('
+') ? '' : '
+') + imgTag + '
+');
+                      setImageUrl('');
+                    }}
+                    className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+                  >
+                    插入图片URL
+                  </button>
+
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        const dataUrl = reader.result as string;
+                        const imgTag = `<img src="${dataUrl}" alt="" style="max-width:100%; height:auto;" />`;
+                        setContent(prev => prev + (prev.endsWith('
+') ? '' : '
+') + imgTag + '
+');
+                        e.target.value = '';
+                      };
+                      reader.readAsDataURL(file);
+                    }}
+                    className="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg"
+                  />
+                </div>
+
                 <textarea
                   id="content"
                   value={content}
                   onChange={(e) => setContent(e.target.value)}
-                  placeholder="使用Markdown格式编写博客内容"
+                  placeholder="使用Markdown格式编写博客内容（支持插入图片标签）"
                   className="w-full bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 min-h-[300px] font-mono"
                   required
                 ></textarea>
                 <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                  支持Markdown格式，如 # 标题, ## 二级标题, **粗体**, *斜体* 等
+                  支持Markdown基础语法；为兼容当前渲染方式，图片将以 &lt;img&gt; HTML 标签插入。
                 </div>
               </div>
               
