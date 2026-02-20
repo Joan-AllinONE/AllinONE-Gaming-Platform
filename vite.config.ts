@@ -13,6 +13,7 @@ function getPlugins() {
 }
 
 export default defineConfig({
+  base: "/AllinONE-Gaming-Platform/",
   plugins: getPlugins(),
   resolve: {
     alias: {
