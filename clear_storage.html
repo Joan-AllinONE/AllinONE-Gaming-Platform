@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>清除钱包数据</title>
+</head>
+<body>
+    <h1>清除钱包数据并重新初始化</h1>
+    <button onclick="clearWalletData()">清除钱包数据</button>
+    <div id="result"></div>
+    
+    <script>
+        function clearWalletData() {
+            // 清除钱包相关的localStorage数据
+            localStorage.removeItem('wallet_data');
+            localStorage.removeItem('exchange_rates');
+            
+            document.getElementById('result').innerHTML = '<p style="color: green;">钱包数据已清除！请刷新个人中心页面。</p>';
+            
+            // 3秒后自动跳转到个人中心
+            setTimeout(() => {
+                window.location.href = 'http://localhost:3000/computing-power';
+            }, 3000);
+        }
+    </script>
+</body>
+</html>

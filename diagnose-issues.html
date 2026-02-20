@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AllinONE 问题诊断</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 16px;
+      padding: 30px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 { color: #667eea; margin-bottom: 20px; text-align: center; }
+    h2 { color: #333; margin: 20px 0 10px; font-size: 18px; }
+    .section {
+      margin: 20px 0;
+      padding: 15px;
+      background: #f8f9fa;
+      border-radius: 8px;
+    }
+    .status {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px;
+      margin: 5px 0;
+      border-radius: 6px;
+    }
+    .status.ok { background: #d4edda; color: #155724; }
+    .status.error { background: #f8d7da; color: #721c24; }
+    .status.warning { background: #fff3cd; color: #856404; }
+    button {
+      padding: 12px 24px;
+      margin: 5px;
+      border: none;
+      border-radius: 6px;
+      background: #667eea;
+      color: white;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button:hover { background: #5568d3; }
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 300px;
+      overflow-y: auto;
+      margin-top: 10px;
+    }
+    .log-entry { margin: 3px 0; }
+    .log-info { color: #4fc1ff; }
+    .log-success { color: #4ec9b0; }
+    .log-error { color: #f48771; }
+    .log-warn { color: #dcdcaa; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 10px 0;
+    }
+    th, td {
+      padding: 10px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+    th { background: #667eea; color: white; }
+    code {
+      background: #e9ecef;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔧 AllinONE 问题诊断工具</h1>
+
+    <div class="section">
+      <h2>📋 本地存储状态</h2>
+      <div id="localStorageStatus"></div>
+      <button onclick="checkLocalStorage()">检查 LocalStorage</button>
+    </div>
+
+    <div class="section">
+      <h2>🔑 Token 状态</h2>
+      <div id="tokenStatus"></div>
+      <button onclick="checkTokens()">检查 Tokens</button>
+    </div>
+
+    <div class="section">
+      <h2>🌐 API 连接测试</h2>
+      <button onclick="testBackendAPI()">测试后端 API (localhost:3000)</button>
+      <button onclick="testNewDayAPI()">测试 New Day API</button>
+      <div id="apiResults"></div>
+    </div>
+
+    <div class="section">
+      <h2>🗄️ 数据库同步测试</h2>
+      <button onclick="testInventorySync()">测试库存同步</button>
+      <div id="syncResults"></div>
+    </div>
+
+    <div class="section">
+      <h2>📝 诊断日志</h2>
+      <div class="log" id="logContainer">
+        <div class="log-entry log-info">点击上方按钮开始诊断...</div>
+      </div>
+      <button onclick="clearLog()">清除日志</button>
+    </div>
+
+    <div class="section">
+      <h2>🔧 快速修复</h2>
+      <button onclick="fixMissingTokens()">修复缺失的 Token</button>
+      <button onclick="clearAllData()">清除所有数据 (谨慎使用)</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:3000/api';
+    const NEWDAY_API = 'https://yxp6y2qgnh.coze.site/api/allinone';
+
+    function log(message, type = 'info') {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.className = `log-entry log-${type}`;
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function clearLog() {
+      document.getElementById('logContainer').innerHTML = 
+        '<div class="log-entry log-info">日志已清除</div>';
+    }
+
+    function checkLocalStorage() {
+      log('检查 LocalStorage...', 'info');
+      const keys = ['user', 'token', 'newday_token', 'allinone_user', 'inventory'];
+      let html = '<table><tr><th>Key</th><th>状态</th><th>值</th></tr>';
+      
+      keys.forEach(key => {
+        const value = localStorage.getItem(key);
+        const status = value ? '✅ 存在' : '❌ 不存在';
+        const displayValue = value 
+          ? (value.length > 50 ? value.substring(0, 50) + '...' : value)
+          : '-';
+        html += `<tr><td><code>${key}</code></td><td>${status}</td><td>${displayValue}</td></tr>`;
+      });
+      
+      html += '</table>';
+      document.getElementById('localStorageStatus').innerHTML = html;
+      log('LocalStorage 检查完成', 'success');
+    }
+
+    function checkTokens() {
+      log('检查 Tokens...', 'info');
+      
+      const allinoneToken = localStorage.getItem('token');
+      const newdayToken = localStorage.getItem('newday_token');
+      const userStr = localStorage.getItem('user');
+      
+      let html = '';
+      
+      if (!allinoneToken && !newdayToken) {
+        html += '<div class="status error">❌ 没有任何 Token，请先登录</div>';
+        log('没有找到任何 Token', 'error');
+      } else {
+        if (allinoneToken) {
+          html += `<div class="status ok">✅ AllinONE Token: ${allinoneToken.substring(0, 30)}...</div>`;
+          log('找到 AllinONE Token', 'success');
+        } else {
+          html += '<div class="status warning">⚠️ 缺少 AllinONE Token</div>';
+          log('缺少 AllinONE Token', 'warn');
+        }
+        
+        if (newdayToken) {
+          html += `<div class="status ok">✅ New Day Token: ${newdayToken.substring(0, 30)}...</div>`;
+          log('找到 New Day Token', 'success');
+        } else {
+          html += '<div class="status warning">⚠️ 缺少 New Day Token</div>';
+          log('缺少 New Day Token', 'warn');
+        }
+      }
+      
+      if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          html += `<div class="status ok">✅ 用户信息: ${user.username || user.userId || '未知'}</div>`;
+          log(`找到用户信息: ${JSON.stringify(user)}`, 'success');
+        } catch (e) {
+          html += '<div class="status error">❌ 用户信息格式错误</div>';
+          log('用户信息解析失败', 'error');
+        }
+      } else {
+        html += '<div class="status error">❌ 缺少用户信息</div>';
+        log('缺少用户信息', 'error');
+      }
+      
+      document.getElementById('tokenStatus').innerHTML = html;
+    }
+
+    async function testBackendAPI() {
+      log('测试后端 API...', 'info');
+      
+      try {
+        const response = await fetch(`${API_BASE}/health`);
+        const data = await response.json();
+        
+        let html = '<div class="status ok">✅ 后端服务器运行正常</div>';
+        html += `<div>状态: ${data.status}</div>`;
+        html += `<div>时间: ${data.timestamp}</div>`;
+        html += `<div>数据库: ${data.database}</div>`;
+        
+        document.getElementById('apiResults').innerHTML = html;
+        log('后端 API 测试成功', 'success');
+      } catch (error) {
+        document.getElementById('apiResults').innerHTML = 
+          `<div class="status error">❌ 后端服务器未启动: ${error.message}</div>`;
+        log(`后端 API 测试失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function testNewDayAPI() {
+      log('测试 New Day API...', 'info');
+      
+      const token = localStorage.getItem('newday_token');
+      if (!token) {
+        document.getElementById('apiResults').innerHTML += 
+          '<div class="status error">❌ 缺少 New Day Token，无法测试</div>';
+        log('缺少 New Day Token', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${NEWDAY_API}/inventory`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          document.getElementById('apiResults').innerHTML += 
+            `<div class="status ok">✅ New Day API 连接成功 (${data.items?.length || 0} 个道具)</div>`;
+          log('New Day API 测试成功', 'success');
+        } else {
+          document.getElementById('apiResults').innerHTML += 
+            `<div class="status error">❌ New Day API 返回 ${response.status}</div>`;
+          log(`New Day API 返回错误: ${response.status}`, 'error');
+        }
+      } catch (error) {
+        document.getElementById('apiResults').innerHTML += 
+          `<div class="status error">❌ New Day API 连接失败: ${error.message}</div>`;
+        log(`New Day API 测试失败: ${error.message}`, 'error');
+      }
+    }
+
+    async function testInventorySync() {
+      log('测试库存同步...', 'info');
+      
+      const token = localStorage.getItem('token') || localStorage.getItem('newday_token');
+      if (!token) {
+        document.getElementById('syncResults').innerHTML = 
+          '<div class="status error">❌ 缺少 Token，无法测试同步</div>';
+        log('缺少 Token，无法测试', 'error');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`${API_BASE}/inventory`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.status === 401) {
+          document.getElementById('syncResults').innerHTML = 
+            '<div class="status error">❌ 401 未授权 - Token 无效或过期</div>';
+          log('库存 API 返回 401 未授权', 'error');
+        } else if (response.ok) {
+          const data = await response.json();
+          document.getElementById('syncResults').innerHTML = 
+            `<div class="status ok">✅ 库存 API 连接成功 (${data.data?.pagination?.total || 0} 个道具)</div>`;
+          log('库存 API 测试成功', 'success');
+        } else {
+          document.getElementById('syncResults').innerHTML = 
+            `<div class="status error">❌ 库存 API 返回 ${response.status}</div>`;
+          log(`库存 API 返回错误: ${response.status}`, 'error');
+        }
+      } catch (error) {
+        document.getElementById('syncResults').innerHTML = 
+          `<div class="status error">❌ 库存 API 连接失败: ${error.message}</div>`;
+        log(`库存 API 测试失败: ${error.message}`, 'error');
+      }
+    }
+
+    function fixMissingTokens() {
+      log('尝试修复缺失的 Token...', 'info');
+      
+      const newdayToken = localStorage.getItem('newday_token');
+      const userStr = localStorage.getItem('user');
+      
+      if (!userStr) {
+        // 创建默认用户
+        const defaultUser = { userId: '1', username: 'default_user' };
+        localStorage.setItem('user', JSON.stringify(defaultUser));
+        log('创建默认用户', 'warn');
+      }
+      
+      if (!localStorage.getItem('token') && newdayToken) {
+        // 使用 New Day token 作为 AllinONE token
+        localStorage.setItem('token', newdayToken);
+        log('使用 New Day Token 作为 AllinONE Token', 'warn');
+      }
+      
+      log('Token 修复完成，请重新检查', 'success');
+      checkTokens();
+    }
+
+    function clearAllData() {
+      if (confirm('确定要清除所有 localStorage 数据吗？这将需要重新登录。')) {
+        localStorage.clear();
+        log('所有数据已清除', 'warn');
+        checkLocalStorage();
+      }
+    }
+
+    // 自动运行一次检查
+    window.onload = () => {
+      checkLocalStorage();
+      checkTokens();
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>清除登录状态 - AllinONE</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0;
+    }
+    .container {
+      background: white;
+      border-radius: 16px;
+      padding: 40px;
+      max-width: 500px;
+      width: 90%;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    }
+    h1 {
+      color: #667eea;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .status {
+      margin: 15px 0;
+      padding: 15px;
+      border-radius: 8px;
+      background: #f8f9fa;
+    }
+    .status-item {
+      display: flex;
+      justify-content: space-between;
+      margin: 8px 0;
+      padding: 8px;
+      background: white;
+      border-radius: 4px;
+    }
+    button {
+      width: 100%;
+      padding: 15px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s;
+    }
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+    }
+    .btn-danger:hover {
+      background: #c82333;
+    }
+    .btn-primary {
+      background: #667eea;
+      color: white;
+    }
+    .btn-primary:hover {
+      background: #5568d3;
+    }
+    .log {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      max-height: 200px;
+      overflow-y: auto;
+      margin-top: 15px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🔐 登录状态管理</h1>
+
+    <div class="status" id="statusContainer">
+      <h3>当前登录状态</h3>
+      <div id="loginStatus">检查中...</div>
+    </div>
+
+    <button class="btn-danger" onclick="clearAllLoginData()">
+      🗑️ 清除所有登录数据
+    </button>
+
+    <button class="btn-primary" onclick="refreshPage()">
+      🔄 刷新页面检查状态
+    </button>
+
+    <div class="log" id="logContainer">
+      <div>等待操作...</div>
+    </div>
+
+    <div style="margin-top: 20px; text-align: center;">
+      <a href="http://localhost:3001" style="color: #667eea;">返回应用 →</a>
+    </div>
+  </div>
+
+  <script>
+    function log(message, type = 'info') {
+      const container = document.getElementById('logContainer');
+      const entry = document.createElement('div');
+      entry.style.margin = '5px 0';
+      entry.style.color = type === 'error' ? '#f48771' : type === 'success' ? '#4ec9b0' : '#d4d4d4';
+      entry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+      container.appendChild(entry);
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function checkLoginStatus() {
+      const currentUser = localStorage.getItem('currentUser');
+      const newdayToken = localStorage.getItem('newday_token');
+      const token = localStorage.getItem('token');
+
+      let html = '';
+
+      if (currentUser) {
+        try {
+          const user = JSON.parse(currentUser);
+          html += `<div class="status-item"><span>AllinONE 用户</span><span style="color: green;">✅ ${user.username || user.id}</span></div>`;
+        } catch (e) {
+          html += `<div class="status-item"><span>AllinONE 用户</span><span style="color: orange;">⚠️ 数据损坏</span></div>`;
+        }
+      } else {
+        html += `<div class="status-item"><span>AllinONE 用户</span><span style="color: red;">❌ 未登录</span></div>`;
+      }
+
+      if (newdayToken) {
+        html += `<div class="status-item"><span>New Day Token</span><span style="color: green;">✅ 已存储</span></div>`;
+      } else {
+        html += `<div class="status-item"><span>New Day Token</span><span style="color: red;">❌ 不存在</span></div>`;
+      }
+
+      if (token) {
+        html += `<div class="status-item"><span>AllinONE Token</span><span style="color: green;">✅ 已存储</span></div>`;
+      } else {
+        html += `<div class="status-item"><span>AllinONE Token</span><span style="color: red;">❌ 不存在</span></div>`;
+      }
+
+      document.getElementById('loginStatus').innerHTML = html;
+    }
+
+    function clearAllLoginData() {
+      if (!confirm('确定要清除所有登录数据吗？这将需要重新登录。')) {
+        return;
+      }
+
+      log('开始清除登录数据...', 'info');
+
+      // 清除所有登录相关的 localStorage 项
+      const keysToRemove = [
+        'currentUser',
+        'user',
+        'token',
+        'newday_token',
+        'cross_platform_token',
+        'cross_platform_user',
+        'allinone-user-data'
+      ];
+
+      keysToRemove.forEach(key => {
+        if (localStorage.getItem(key)) {
+          localStorage.removeItem(key);
+          log(`已清除: ${key}`, 'success');
+        }
+      });
+
+      // 清除 sessionStorage
+      sessionStorage.clear();
+      log('已清除 sessionStorage', 'success');
+
+      // 清除 cookies
+      document.cookie.split(';').forEach(cookie => {
+        const [name] = cookie.split('=');
+        document.cookie = `${name.trim()}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;`;
+      });
+      log('已清除 cookies', 'success');
+
+      log('所有登录数据已清除！', 'success');
+      log('请刷新页面或重新访问应用', 'info');
+
+      checkLoginStatus();
+    }
+
+    function refreshPage() {
+      window.location.reload();
+    }
+
+    // 页面加载时检查状态
+    window.onload = () => {
+      checkLoginStatus();
+      log('页面加载完成，当前登录状态已显示', 'info');
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "envId": "your-env-id-here",
+  "functionRoot": "./cloudfunctions",
+  "functions": [],
+  "hosting": {
+    "public": "dist/static",
+    "ignore": [
+      "*.md",
+      "*.log",
+      "node_modules",
+      ".git"
+    ],
+    "rewrites": [
+      {
+        "source": "**",
+        "destination": "/index.html"
+      }
+    ]
+  },
+  "cloudrun": {
+    "serverName": "allinone-gaming",
+    "containerPort": 3000,
+    "cpu": 0.5,
+    "mem": 1,
+    "minNum": 1,
+    "maxNum": 10,
+    "envParams": {
+      "NODE_ENV": "production",
+      "USE_MEMORY_DB": "true",
+      "PORT": "3000"
+    }
+  }
+}

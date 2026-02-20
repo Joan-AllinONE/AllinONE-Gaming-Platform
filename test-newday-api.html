@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Day API 测试工具</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #1a1a2e;
+      color: #eee;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    h1 {
+      color: #00d4ff;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+    .section {
+      background: #16213e;
+      border-radius: 10px;
+      padding: 20px;
+      margin-bottom: 20px;
+      border: 1px solid #0f3460;
+    }
+    h2 {
+      color: #e94560;
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      color: #aaa;
+      font-size: 14px;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 10px;
+      background: #0f3460;
+      border: 1px solid #1a1a2e;
+      border-radius: 5px;
+      color: #fff;
+      font-size: 14px;
+    }
+    input:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: #00d4ff;
+    }
+    textarea {
+      min-height: 150px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+    }
+    button {
+      background: #e94560;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #ff6b6b;
+    }
+    button:disabled {
+      background: #666;
+      cursor: not-allowed;
+    }
+    .result {
+      margin-top: 20px;
+      padding: 15px;
+      background: #0f3460;
+      border-radius: 5px;
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .success {
+      border-left: 4px solid #00d4ff;
+    }
+    .error {
+      border-left: 4px solid #e94560;
+    }
+    .preset-buttons {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 15px;
+    }
+    .preset-btn {
+      background: #0f3460;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+    .preset-btn:hover {
+      background: #1a4a7a;
+    }
+    .info-box {
+      background: #1a4a7a;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎮 New Day API 测试工具</h1>
+    
+    <div class="section">
+      <h2>配置</h2>
+      <div class="form-group">
+        <label>API 基础地址</label>
+        <input type="text" id="apiBase" value="http://localhost:3001/api" placeholder="http://localhost:3001/api">
+      </div>
+      <div class="form-group">
+        <label>认证 Token（从 localStorage 获取 newday_token）</label>
+        <input type="text" id="authToken" placeholder="输入 New Day Token">
+      </div>
+      <button onclick="getTokenFromStorage()">从 LocalStorage 获取 Token</button>
+    </div>
+
+    <div class="section">
+      <h2>请求数据</h2>
+      <div class="info-box">
+        点击预设按钮快速填充数据，或手动编辑 JSON
+      </div>
+      <div class="preset-buttons">
+        <button class="preset-btn" onclick="loadPreset('health')">生命药水</button>
+        <button class="preset-btn" onclick="loadPreset('sword')">武器</button>
+        <button class="preset-btn" onclick="loadPreset('armor')">护甲</button>
+        <button class="preset-btn" onclick="loadPreset('minimal')">最小数据</button>
+      </div>
+      <div class="form-group">
+        <label>请求 JSON</label>
+        <textarea id="requestBody" placeholder="{
+  &quot;itemId&quot;: &quot;test_item_001&quot;,
+  &quot;name&quot;: &quot;测试道具&quot;,
+  &quot;type&quot;: &quot;consumable&quot;,
+  &quot;rarity&quot;: &quot;common&quot;,
+  &quot;quantity&quot;: 1
+}"></textarea>
+      </div>
+      <button onclick="sendRequest()">发送请求</button>
+    </div>
+
+    <div class="section">
+      <h2>响应结果</h2>
+      <div id="result" class="result" style="display: none;"></div>
+    </div>
+
+    <div class="section">
+      <h2>调试信息</h2>
+      <div id="debug" class="result" style="background: #1a1a2e;"></div>
+    </div>
+  </div>
+
+  <script>
+    // 预设数据
+    const presets = {
+      health: {
+        itemId: "nd_health_potion_" + Date.now(),
+        name: "[New Day] 生命药水",
+        description: "立即恢复 1000 点生命值",
+        type: "consumable",
+        rarity: "common",
+        quantity: 1,
+        stats: { healAmount: 1000 },
+        originalSource: "allinone_official_store"
+      },
+      sword: {
+        itemId: "nd_iron_sword_" + Date.now(),
+        name: "[New Day] 铁剑",
+        description: "一把普通的铁剑，攻击力 +15",
+        type: "weapon",
+        rarity: "common",
+        quantity: 1,
+        stats: { attack: 15 },
+        originalSource: "allinone_official_store"
+      },
+      armor: {
+        itemId: "nd_leather_armor_" + Date.now(),
+        name: "[New Day] 皮甲",
+        description: "轻型护甲，防御力 +10",
+        type: "armor",
+        rarity: "uncommon",
+        quantity: 1,
+        stats: { defense: 10 },
+        originalSource: "allinone_official_store"
+      },
+      minimal: {
+        itemId: "nd_test_" + Date.now(),
+        name: "测试道具",
+        type: "consumable",
+        rarity: "common",
+        quantity: 1
+      }
+    };
+
+    // 加载预设
+    function loadPreset(type) {
+      const data = presets[type];
+      document.getElementById('requestBody').value = JSON.stringify(data, null, 2);
+      logDebug('已加载预设: ' + type);
+    }
+
+    // 从 localStorage 获取 token
+    function getTokenFromStorage() {
+      try {
+        const token = localStorage.getItem('newday_token');
+        if (token) {
+          document.getElementById('authToken').value = token;
+          logDebug('从 localStorage 获取到 token: ' + token.substring(0, 30) + '...');
+        } else {
+          logDebug('localStorage 中没有找到 newday_token');
+          alert('localStorage 中没有找到 newday_token，请手动输入');
+        }
+      } catch (e) {
+        logDebug('获取 token 失败: ' + e.message);
+      }
+    }
+
+    // 记录调试信息
+    function logDebug(message) {
+      const debugDiv = document.getElementById('debug');
+      const time = new Date().toLocaleTimeString();
+      debugDiv.innerHTML += `[${time}] ${message}\n`;
+      debugDiv.scrollTop = debugDiv.scrollHeight;
+    }
+
+    // 发送请求
+    async function sendRequest() {
+      const apiBase = document.getElementById('apiBase').value.trim();
+      const token = document.getElementById('authToken').value.trim();
+      const requestBodyStr = document.getElementById('requestBody').value.trim();
+      const resultDiv = document.getElementById('result');
+      
+      if (!apiBase || !token || !requestBodyStr) {
+        alert('请填写所有必填字段');
+        return;
+      }
+
+      // 解析请求体
+      let requestBody;
+      try {
+        requestBody = JSON.parse(requestBodyStr);
+      } catch (e) {
+        alert('请求 JSON 格式错误: ' + e.message);
+        return;
+      }
+
+      const url = apiBase + '/allinone/inventory/add';
+      
+      logDebug('========================================');
+      logDebug('发送请求到: ' + url);
+      logDebug('请求数据: ' + JSON.stringify(requestBody, null, 2));
+
+      resultDiv.style.display = 'block';
+      resultDiv.className = 'result';
+      resultDiv.textContent = '发送请求中...';
+
+      try {
+        const startTime = Date.now();
+        
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + token
+          },
+          body: JSON.stringify(requestBody)
+        });
+
+        const duration = Date.now() - startTime;
+        const responseText = await response.text();
+        
+        logDebug('响应状态: ' + response.status + ' ' + response.statusText);
+        logDebug('响应时间: ' + duration + 'ms');
+        logDebug('原始响应: ' + responseText);
+
+        // 显示结果
+        let resultHtml = `HTTP Status: ${response.status} ${response.statusText}\n`;
+        resultHtml += `Response Time: ${duration}ms\n`;
+        resultHtml += `\nRaw Response:\n${responseText}\n\n`;
+
+        // 尝试解析 JSON
+        try {
+          const jsonData = JSON.parse(responseText);
+          resultHtml += `Parsed JSON:\n${JSON.stringify(jsonData, null, 2)}`;
+          
+          if (response.ok && jsonData.success) {
+            resultDiv.classList.add('success');
+            logDebug('✅ 请求成功');
+          } else {
+            resultDiv.classList.add('error');
+            logDebug('❌ 请求失败: ' + (jsonData.message || '未知错误'));
+          }
+        } catch (e) {
+          resultHtml += `Parse Error: ${e.message}`;
+          resultDiv.classList.add('error');
+          logDebug('❌ 解析响应失败: ' + e.message);
+        }
+
+        resultDiv.textContent = resultHtml;
+        
+      } catch (error) {
+        resultDiv.style.display = 'block';
+        resultDiv.className = 'result error';
+        resultDiv.textContent = `Network Error:\n${error.name}: ${error.message}\n\nStack:\n${error.stack}`;
+        logDebug('❌ 网络错误: ' + error.message);
+      }
+      
+      logDebug('========================================');
+    }
+
+    // 页面加载时加载默认预设
+    window.onload = function() {
+      loadPreset('health');
+      logDebug('页面加载完成，已加载默认预设');
+      
+      // 尝试自动获取 token
+      setTimeout(getTokenFromStorage, 500);
+    };
+  </script>
+</body>
+</html>

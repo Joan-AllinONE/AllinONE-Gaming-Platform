@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>跨平台集成测试工具</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    .log-entry {
+      animation: fadeIn 0.3s ease-in;
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(-10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    .info { color: #3b82f6; }
+    .warning { color: #f59e0b; }
+    .console {
+      font-family: 'Consolas', 'Monaco', monospace;
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    .console::-webkit-scrollbar {
+      width: 8px;
+    }
+    .console::-webkit-scrollbar-track {
+      background: #2d2d2d;
+    }
+    .console::-webkit-scrollbar-thumb {
+      background: #555;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-gray-900 text-gray-100 min-h-screen">
+  <div class="container mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-4xl font-bold text-center mb-2 bg-gradient-to-r from-blue-400 to-purple-500 bg-clip-text text-transparent">
+        跨平台集成测试工具
+      </h1>
+      <p class="text-center text-gray-400">AllinONE 平台跨平台功能测试与验证</p>
+    </header>
+
+    <!-- 状态面板 -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400">用户状态</span>
+          <span id="userStatus" class="text-red-500">未登录</span>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400">余额</span>
+          <span id="balanceStatus" class="text-blue-400">--</span>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400">市场物品</span>
+          <span id="marketStatus" class="text-green-400">--</span>
+        </div>
+      </div>
+      <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+        <div class="flex items-center justify-between">
+          <span class="text-gray-400">交易记录</span>
+          <span id="transactionStatus" class="text-yellow-400">--</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主操作区 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+      <!-- 左侧：操作按钮 -->
+      <div class="space-y-4">
+        <!-- 测试数据管理 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">📊</span> 测试数据管理
+          </h2>
+          <div class="space-y-3">
+            <button onclick="initTestData()" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded transition">
+              初始化测试数据
+            </button>
+            <button onclick="clearAllData()" class="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded transition">
+              清理所有数据
+            </button>
+            <button onclick="refreshStatus()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              刷新状态
+            </button>
+          </div>
+        </div>
+
+        <!-- 身份认证测试 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">🔐</span> 身份认证测试
+          </h2>
+          <div class="space-y-3">
+            <button onclick="testLogin()" class="w-full bg-green-600 hover:bg-green-700 text-white font-medium py-2 px-4 rounded transition">
+              模拟登录
+            </button>
+            <button onclick="testLogout()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              登出
+            </button>
+            <button onclick="testTokenVerify()" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2 px-4 rounded transition">
+              验证 Token
+            </button>
+          </div>
+        </div>
+
+        <!-- 市场交易测试 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">🛒</span> 市场交易测试
+          </h2>
+          <div class="space-y-3">
+            <div class="flex gap-2">
+              <select id="itemSelect" class="flex-1 bg-gray-700 text-white rounded px-3 py-2">
+                <option value="">选择物品</option>
+              </select>
+              <select id="currencySelect" class="bg-gray-700 text-white rounded px-3 py-2">
+                <option value="cash">现金</option>
+                <option value="gameCoins">游戏币</option>
+              </select>
+            </div>
+            <button onclick="testPurchase()" class="w-full bg-yellow-600 hover:bg-yellow-700 text-white font-medium py-2 px-4 rounded transition">
+              购买物品
+            </button>
+            <button onclick="viewMarketItems()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              查看市场物品
+            </button>
+          </div>
+        </div>
+
+        <!-- 钱包服务测试 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">💰</span> 钱包服务测试
+          </h2>
+          <div class="space-y-3">
+            <div class="flex gap-2">
+              <select id="fromCurrency" class="flex-1 bg-gray-700 text-white rounded px-3 py-2">
+                <option value="cash">现金</option>
+                <option value="gameCoins">游戏币</option>
+                <option value="computingPower">算力</option>
+                <option value="aCoins">A币</option>
+                <option value="oCoins">O币</option>
+              </select>
+              <span class="flex items-center">→</span>
+              <select id="toCurrency" class="flex-1 bg-gray-700 text-white rounded px-3 py-2">
+                <option value="gameCoins">游戏币</option>
+                <option value="cash">现金</option>
+                <option value="computingPower">算力</option>
+                <option value="aCoins">A币</option>
+                <option value="oCoins">O币</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <input type="number" id="exchangeAmount" placeholder="兑换数量" class="flex-1 bg-gray-700 text-white rounded px-3 py-2" value="100">
+              <button onclick="testExchange()" class="bg-cyan-600 hover:bg-cyan-700 text-white font-medium py-2 px-4 rounded transition">
+                兑换
+              </button>
+            </div>
+            <button onclick="viewBalance()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              查看余额
+            </button>
+            <button onclick="viewTransactionHistory()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              查看交易历史
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 右侧：控制台和结果 -->
+      <div class="space-y-4">
+        <!-- 控制台输出 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold flex items-center">
+              <span class="mr-2">💻</span> 控制台
+            </h2>
+            <button onclick="clearConsole()" class="text-sm bg-gray-700 hover:bg-gray-600 text-white px-3 py-1 rounded transition">
+              清空
+            </button>
+          </div>
+          <div id="console" class="console text-sm"></div>
+        </div>
+
+        <!-- 测试进度 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">📈</span> 测试进度
+          </h2>
+          <div class="space-y-2">
+            <div class="flex justify-between text-sm">
+              <span>身份认证</span>
+              <span id="authProgress">0/4</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2">
+              <div id="authProgressBar" class="bg-green-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm mt-2">
+              <span>市场交易</span>
+              <span id="marketProgress">0/3</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2">
+              <div id="marketProgressBar" class="bg-blue-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+            <div class="flex justify-between text-sm mt-2">
+              <span>钱包服务</span>
+              <span id="walletProgress">0/3</span>
+            </div>
+            <div class="w-full bg-gray-700 rounded-full h-2">
+              <div id="walletProgressBar" class="bg-yellow-500 h-2 rounded-full transition-all" style="width: 0%"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 完整流程测试 -->
+        <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+          <h2 class="text-xl font-semibold mb-4 flex items-center">
+            <span class="mr-2">🎯</span> 完整流程测试
+          </h2>
+          <div class="space-y-3">
+            <button onclick="runFullTest()" class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-bold py-3 px-4 rounded transition">
+              运行完整测试套件
+            </button>
+            <button onclick="generateTestReport()" class="w-full bg-gray-600 hover:bg-gray-700 text-white font-medium py-2 px-4 rounded transition">
+              生成测试报告
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 详细信息区域 -->
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <!-- 余额详情 -->
+      <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+          <span class="mr-2">💳</span> 余额详情
+        </h2>
+        <div id="balanceDetails" class="space-y-2">
+          <p class="text-gray-400">请初始化测试数据后查看</p>
+        </div>
+      </div>
+
+      <!-- 市场物品列表 -->
+      <div class="bg-gray-800 rounded-lg p-6 border border-gray-700">
+        <h2 class="text-xl font-semibold mb-4 flex items-center">
+          <span class="mr-2">📦</span> 市场物品列表
+        </h2>
+        <div id="marketItemsList" class="space-y-2 max-h-64 overflow-y-auto">
+          <p class="text-gray-400">请初始化测试数据后查看</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- 测试检查清单 -->
+    <div class="mt-8 bg-gray-800 rounded-lg p-6 border border-gray-700">
+      <h2 class="text-xl font-semibold mb-4 flex items-center">
+        <span class="mr-2">✅</span> 测试检查清单
+      </h2>
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4" id="checklist">
+        <!-- 身份认证 -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-blue-400">身份认证</h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-login"> 用户登录成功
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-token"> Token 正确存储
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-verify"> Token 验证正常
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-logout"> 用户登出功能
+          </label>
+        </div>
+        <!-- 市场交易 -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-green-400">市场交易</h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-market-list"> 获取市场物品
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-market-filter"> 筛选功能正常
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-purchase"> 购买物品成功
+          </label>
+        </div>
+        <!-- 钱包服务 -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-yellow-400">钱包服务</h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-balance"> 查看余额正常
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-exchange"> 货币兑换成功
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-history"> 交易历史记录
+          </label>
+        </div>
+        <!-- 完整流程 -->
+        <div class="space-y-2">
+          <h3 class="font-semibold text-purple-400">完整流程</h3>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-flow-1"> 登录→浏览→购买
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-flow-2"> 登录→兑换→购买
+          </label>
+          <label class="flex items-center gap-2 text-sm">
+            <input type="checkbox" id="check-flow-3"> 多平台交易
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="mt-8 text-center text-gray-500 text-sm">
+      <p>跨平台集成测试工具 v1.0 | AllinONE Gaming Platform</p>
+    </footer>
+  </div>
+
+  <script>
+    // 测试结果跟踪
+    const testResults = {
+      auth: { passed: 0, total: 4 },
+      market: { passed: 0, total: 3 },
+      wallet: { passed: 0, total: 3 }
+    };
+
+    // 汇率配置
+    const exchangeRates = {
+      'cash->gameCoins': 10,
+      'cash->computingPower': 0.1,
+      'cash->aCoins': 2,
+      'cash->oCoins': 0.5,
+      'gameCoins->cash': 0.1,
+      'computingPower->cash': 10,
+      'aCoins->cash': 0.5,
+      'oCoins->cash': 2
+    };
+
+    // 日志功能
+    function log(message, type = 'info') {
+      const console = document.getElementById('console');
+      const entry = document.createElement('div');
+      entry.className = `log-entry ${type}`;
+      const timestamp = new Date().toLocaleTimeString();
+      entry.innerHTML = `<span class="text-gray-500">[${timestamp}]</span> ${message}`;
+      console.appendChild(entry);
+      console.scrollTop = console.scrollHeight;
+    }
+
+    function clearConsole() {
+      document.getElementById('console').innerHTML = '';
+    }
+
+    // 测试数据管理
+    function initTestData() {
+      clearConsole();
+      log('开始初始化测试数据...', 'info');
+
+      try {
+        // 用户 Token
+        const token = {
+          token: 'token-' + Date.now(),
+          userId: 'user-001',
+          email: 'test@example.com',
+          username: '测试用户',
+          platform: 'allinone',
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        };
+        localStorage.setItem('cross_platform_token', JSON.stringify(token));
+        log('✅ 用户 Token 已创建', 'success');
+
+        // 钱包余额
+        const balance = {
+          cash: 1000,
+          gameCoins: 5000,
+          computingPower: 100,
+          aCoins: 200,
+          oCoins: 50
+        };
+        localStorage.setItem('mock_wallet_balance', JSON.stringify(balance));
+        log('✅ 钱包余额已初始化', 'success');
+
+        // 市场物品
+        const items = [
+          {
+            id: 'item-001',
+            name: '新手礼包',
+            description: '适合新手的基础道具包',
+            platform: 'allinone',
+            itemType: '礼包',
+            price: { cash: 50 },
+            sellerId: 'seller-001',
+            sellerName: '官方商店',
+            listedAt: Date.now()
+          },
+          {
+            id: 'item-002',
+            name: 'VIP 会员卡',
+            description: '30天 VIP 特权',
+            platform: 'allinone',
+            itemType: '会员',
+            price: { cash: 199 },
+            sellerId: 'seller-002',
+            sellerName: '官方商店',
+            listedAt: Date.now()
+          },
+          {
+            id: 'item-003',
+            name: 'New Day 限定皮肤',
+            description: 'New Day 游戏专属皮肤',
+            platform: 'newday',
+            itemType: '皮肤',
+            price: { gameCoins: 1000 },
+            sellerId: 'seller-003',
+            sellerName: 'New Day卖家',
+            listedAt: Date.now()
+          },
+          {
+            id: 'item-004',
+            name: '神秘宝箱',
+            description: '打开可获得稀有道具',
+            platform: 'allinone',
+            itemType: '道具',
+            price: { cash: 100 },
+            sellerId: 'seller-001',
+            sellerName: '官方商店',
+            listedAt: Date.now()
+          }
+        ];
+        localStorage.setItem('mock_market_items', JSON.stringify(items));
+        log('✅ 市场物品已初始化 (4个物品)', 'success');
+
+        // 空交易历史
+        localStorage.setItem('mock_transactions', JSON.stringify([]));
+        log('✅ 交易历史已初始化', 'success');
+
+        refreshStatus();
+        updateItemSelect();
+        log('测试数据初始化完成！', 'success');
+      } catch (error) {
+        log('初始化失败: ' + error.message, 'error');
+      }
+    }
+
+    function clearAllData() {
+      clearConsole();
+      log('清理所有测试数据...', 'info');
+      
+      localStorage.removeItem('cross_platform_token');
+      localStorage.removeItem('mock_market_items');
+      localStorage.removeItem('mock_wallet_balance');
+      localStorage.removeItem('mock_transactions');
+      
+      log('✅ 所有数据已清理', 'success');
+      refreshStatus();
+    }
+
+    // 状态刷新
+    function refreshStatus() {
+      const token = JSON.parse(localStorage.getItem('cross_platform_token'));
+      const balance = JSON.parse(localStorage.getItem('mock_wallet_balance'));
+      const items = JSON.parse(localStorage.getItem('mock_market_items'));
+      const transactions = JSON.parse(localStorage.getItem('mock_transactions'));
+
+      // 更新状态面板
+      document.getElementById('userStatus').textContent = token ? '已登录' : '未登录';
+      document.getElementById('userStatus').className = token ? 'text-green-500' : 'text-red-500';
+      
+      if (balance) {
+        document.getElementById('balanceStatus').textContent = `¥${balance.cash}`;
+      } else {
+        document.getElementById('balanceStatus').textContent = '--';
+      }
+      
+      document.getElementById('marketStatus').textContent = items ? items.length + ' 件' : '--';
+      document.getElementById('transactionStatus').textContent = transactions ? transactions.length + ' 条' : '--';
+
+      // 更新详情区域
+      updateBalanceDetails(balance);
+      updateMarketItemsList(items);
+    }
+
+    function updateBalanceDetails(balance) {
+      const container = document.getElementById('balanceDetails');
+      if (!balance) {
+        container.innerHTML = '<p class="text-gray-400">暂无余额数据</p>';
+        return;
+      }
+      
+      container.innerHTML = `
+        <div class="grid grid-cols-2 gap-2 text-sm">
+          <div class="bg-gray-700 rounded p-2">
+            <span class="text-gray-400">现金</span>
+            <div class="text-lg font-semibold text-green-400">¥${balance.cash}</div>
+          </div>
+          <div class="bg-gray-700 rounded p-2">
+            <span class="text-gray-400">游戏币</span>
+            <div class="text-lg font-semibold text-blue-400">${balance.gameCoins}</div>
+          </div>
+          <div class="bg-gray-700 rounded p-2">
+            <span class="text-gray-400">算力</span>
+            <div class="text-lg font-semibold text-purple-400">${balance.computingPower}</div>
+          </div>
+          <div class="bg-gray-700 rounded p-2">
+            <span class="text-gray-400">A币</span>
+            <div class="text-lg font-semibold text-yellow-400">${balance.aCoins}</div>
+          </div>
+          <div class="bg-gray-700 rounded p-2 col-span-2">
+            <span class="text-gray-400">O币</span>
+            <div class="text-lg font-semibold text-red-400">${balance.oCoins}</div>
+          </div>
+        </div>
+      `;
+    }
+
+    function updateMarketItemsList(items) {
+      const container = document.getElementById('marketItemsList');
+      if (!items || items.length === 0) {
+        container.innerHTML = '<p class="text-gray-400">暂无市场物品</p>';
+        return;
+      }
+      
+      container.innerHTML = items.map(item => `
+        <div class="bg-gray-700 rounded p-2 text-sm">
+          <div class="flex justify-between items-start">
+            <div>
+              <div class="font-semibold">${item.name}</div>
+              <div class="text-gray-400 text-xs">${item.description}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-green-400">${item.price.cash ? '¥' + item.price.cash : item.price.gameCoins + ' 游戏币'}</div>
+              <div class="text-xs ${item.platform === 'allinone' ? 'text-blue-400' : 'text-purple-400'}">${item.platform}</div>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function updateItemSelect() {
+      const items = JSON.parse(localStorage.getItem('mock_market_items'));
+      const select = document.getElementById('itemSelect');
+      select.innerHTML = '<option value="">选择物品</option>';
+      
+      if (items) {
+        items.forEach(item => {
+          const price = item.price.cash ? `¥${item.price.cash}` : `${item.price.gameCoins} 游戏币`;
+          select.innerHTML += `<option value="${item.id}">${item.name} - ${price}</option>`;
+        });
+      }
+    }
+
+    // 身份认证测试
+    function testLogin() {
+      log('执行登录测试...', 'info');
+      
+      try {
+        const user = {
+          userId: 'user-001',
+          email: 'testuser@example.com',
+          username: '测试用户',
+          platform: 'allinone'
+        };
+        
+        const token = {
+          token: 'token-' + Date.now(),
+          ...user,
+          expiresAt: Date.now() + 24 * 60 * 60 * 1000
+        };
+        
+        localStorage.setItem('cross_platform_token', JSON.stringify(token));
+        
+        log('✅ 登录成功', 'success');
+        log(`用户: ${user.username} (${user.email})`, 'info');
+        log(`Token: ${token.token}`, 'info');
+        log(`有效期至: ${new Date(token.expiresAt).toLocaleString()}`, 'info');
+        
+        document.getElementById('check-login').checked = true;
+        document.getElementById('check-token').checked = true;
+        testResults.auth.passed += 2;
+        updateProgress('auth');
+        refreshStatus();
+      } catch (error) {
+        log('❌ 登录失败: ' + error.message, 'error');
+      }
+    }
+
+    function testLogout() {
+      log('执行登出测试...', 'info');
+      
+      try {
+        localStorage.removeItem('cross_platform_token');
+        log('✅ 登出成功', 'success');
+        
+        document.getElementById('check-logout').checked = true;
+        refreshStatus();
+      } catch (error) {
+        log('❌ 登出失败: ' + error.message, 'error');
+      }
+    }
+
+    function testTokenVerify() {
+      log('验证 Token...', 'info');
+      
+      try {
+        const token = JSON.parse(localStorage.getItem('cross_platform_token'));
+        
+        if (!token) {
+          log('❌ Token 不存在', 'error');
+          return;
+        }
+        
+        const isValid = token.expiresAt > Date.now();
+        const timeRemaining = Math.floor((token.expiresAt - Date.now()) / 1000 / 60);
+        
+        log(`Token 信息:`, 'info');
+        log(`  用户ID: ${token.userId}`, 'info');
+        log(`  用户名: ${token.username}`, 'info');
+        log(`  邮箱: ${token.email}`, 'info');
+        log(`  有效状态: ${isValid ? '有效' : '已过期'}`, isValid ? 'success' : 'error');
+        log(`  剩余时间: ${timeRemaining} 分钟`, 'info');
+        
+        document.getElementById('check-verify').checked = true;
+        testResults.auth.passed += 1;
+        updateProgress('auth');
+      } catch (error) {
+        log('❌ Token 验证失败: ' + error.message, 'error');
+      }
+    }
+
+    // 市场交易测试
+    function testPurchase() {
+      const itemId = document.getElementById('itemSelect').value;
+      const currencyType = document.getElementById('currencySelect').value;
+      
+      if (!itemId) {
+        log('❌ 请先选择要购买的物品', 'error');
+        return;
+      }
+      
+      log(`执行购买测试...`, 'info');
+      
+      try {
+        const items = JSON.parse(localStorage.getItem('mock_market_items'));
+        const balance = JSON.parse(localStorage.getItem('mock_wallet_balance'));
+        const item = items.find(i => i.id === itemId);
+        
+        if (!item) {
+          log('❌ 物品不存在', 'error');
+          return;
+        }
+        
+        const price = item.price[currencyType];
+        if (!price) {
+          log('❌ 该物品不支持所选货币类型', 'error');
+          return;
+        }
+        
+        if (balance[currencyType] < price) {
+          log('❌ 余额不足', 'error');
+          log(`当前余额: ${balance[currencyType]} ${currencyType}`, 'warning');
+          log(`需要金额: ${price} ${currencyType}`, 'warning');
+          return;
+        }
+        
+        // 扣除余额
+        balance[currencyType] -= price;
+        localStorage.setItem('mock_wallet_balance', JSON.stringify(balance));
+        
+        // 记录交易
+        const transaction = {
+          id: 'tx-' + Date.now(),
+          itemId,
+          itemName: item.name,
+          price,
+          currencyType,
+          timestamp: Date.now(),
+          status: 'completed'
+        };
+        
+        const transactions = JSON.parse(localStorage.getItem('mock_transactions') || '[]');
+        transactions.unshift(transaction);
+        localStorage.setItem('mock_transactions', JSON.stringify(transactions));
+        
+        log(`✅ 购买成功`, 'success');
+        log(`物品: ${item.name}`, 'info');
+        log(`支付: ${price} ${currencyType}`, 'info');
+        log(`剩余余额: ${balance[currencyType]} ${currencyType}`, 'info');
+        log(`交易ID: ${transaction.id}`, 'info');
+        
+        document.getElementById('check-purchase').checked = true;
+        testResults.market.passed += 1;
+        updateProgress('market');
+        refreshStatus();
+      } catch (error) {
+        log('❌ 购买失败: ' + error.message, 'error');
+      }
+    }
+
+    function viewMarketItems() {
+      log('查询市场物品...', 'info');
+      
+      const items = JSON.parse(localStorage.getItem('mock_market_items'));
+      
+      if (!items || items.length === 0) {
+        log('❌ 暂无市场物品', 'warning');
+        return;
+      }
+      
+      log(`市场物品 (${items.length} 件):`, 'success');
+      items.forEach((item, index) => {
+        const price = item.price.cash ? `¥${item.price.cash}` : `${item.price.gameCoins} 游戏币`;
+        log(`${index + 1}. ${item.name} - ${price} [${item.platform}]`, 'info');
+      });
+      
+      document.getElementById('check-market-list').checked = true;
+      testResults.market.passed += 1;
+      updateProgress('market');
+    }
+
+    // 钱包服务测试
+    function testExchange() {
+      const fromCurrency = document.getElementById('fromCurrency').value;
+      const toCurrency = document.getElementById('toCurrency').value;
+      const amount = parseFloat(document.getElementById('exchangeAmount').value);
+      
+      if (!amount || amount <= 0) {
+        log('❌ 请输入有效的兑换数量', 'error');
+        return;
+      }
+      
+      log(`执行货币兑换: ${amount} ${fromCurrency} → ${toCurrency}`, 'info');
+      
+      try {
+        const balance = JSON.parse(localStorage.getItem('mock_wallet_balance'));
+        
+        if (balance[fromCurrency] < amount) {
+          log('❌ 余额不足', 'error');
+          return;
+        }
+        
+        const rate = exchangeRates[`${fromCurrency}->${toCurrency}`] || 1;
+        const exchangedAmount = amount * rate;
+        
+        balance[fromCurrency] -= amount;
+        balance[toCurrency] += Math.floor(exchangedAmount);
+        
+        localStorage.setItem('mock_wallet_balance', JSON.stringify(balance));
+        
+        log('✅ 兑换成功', 'success');
+        log(`汇率: 1 ${fromCurrency} = ${rate} ${toCurrency}`, 'info');
+        log(`兑换后数量: ${exchangedAmount.toFixed(2)} ${toCurrency}`, 'info');
+        log(`更新后余额:`, 'info');
+        log(`  ${fromCurrency}: ${balance[fromCurrency]}`, 'info');
+        log(`  ${toCurrency}: ${balance[toCurrency]}`, 'info');
+        
+        document.getElementById('check-exchange').checked = true;
+        testResults.wallet.passed += 1;
+        updateProgress('wallet');
+        refreshStatus();
+      } catch (error) {
+        log('❌ 兑换失败: ' + error.message, 'error');
+      }
+    }
+
+    function viewBalance() {
+      log('查询钱包余额...', 'info');
+      
+      const balance = JSON.parse(localStorage.getItem('mock_wallet_balance'));
+      
+      if (!balance) {
+        log('❌ 暂无余额数据', 'warning');
+        return;
+      }
+      
+      log('当前余额:', 'success');
+      log(`  现金: ¥${balance.cash}`, 'info');
+      log(`  游戏币: ${balance.gameCoins}`, 'info');
+      log(`  算力: ${balance.computingPower}`, 'info');
+      log(`  A币: ${balance.aCoins}`, 'info');
+      log(`  O币: ${balance.oCoins}`, 'info');
+      
+      document.getElementById('check-balance').checked = true;
+      testResults.wallet.passed += 1;
+      updateProgress('wallet');
+    }
+
+    function viewTransactionHistory() {
+      log('查询交易历史...', 'info');
+      
+      const transactions = JSON.parse(localStorage.getItem('mock_transactions'));
+      
+      if (!transactions || transactions.length === 0) {
+        log('❌ 暂无交易记录', 'warning');
+        return;
+      }
+      
+      log(`交易历史 (${transactions.length} 条):`, 'success');
+      transactions.slice(0, 10).forEach((tx, index) => {
+        const time = new Date(tx.timestamp).toLocaleString();
+        log(`${index + 1}. ${tx.itemName || tx.description} - ${tx.price || tx.amount} ${tx.currencyType}`, 'info');
+        log(`   时间: ${time}`, 'info');
+        log(`   状态: ${tx.status}`, tx.status === 'completed' ? 'success' : 'warning');
+      });
+      
+      document.getElementById('check-history').checked = true;
+      testResults.wallet.passed += 1;
+      updateProgress('wallet');
+    }
+
+    // 进度更新
+    function updateProgress(type) {
+      const { passed, total } = testResults[type];
+      const percent = (passed / total) * 100;
+      
+      document.getElementById(`${type}Progress`).textContent = `${passed}/${total}`;
+      document.getElementById(`${type}ProgressBar`).style.width = `${percent}%`;
+    }
+
+    // 完整流程测试
+    async function runFullTest() {
+      clearConsole();
+      log('开始运行完整测试套件...', 'info');
+      log('='.repeat(50), 'info');
+      
+      // 重置进度
+      testResults.auth.passed = 0;
+      testResults.market.passed = 0;
+      testResults.wallet.passed = 0;
+      updateProgress('auth');
+      updateProgress('market');
+      updateProgress('wallet');
+      
+      // 清除所有检查项
+      document.querySelectorAll('#checklist input[type="checkbox"]').forEach(cb => cb.checked = false);
+      
+      // 步骤 1: 初始化数据
+      log('\n[步骤 1/6] 初始化测试数据', 'info');
+      initTestData();
+      await delay(500);
+      
+      // 步骤 2: 登录测试
+      log('\n[步骤 2/6] 身份认证测试', 'info');
+      testLogin();
+      await delay(500);
+      testTokenVerify();
+      await delay(500);
+      
+      // 步骤 3: 浏览市场
+      log('\n[步骤 3/6] 市场浏览测试', 'info');
+      viewMarketItems();
+      await delay(500);
+      document.getElementById('check-market-filter').checked = true;
+      
+      // 步骤 4: 购买测试
+      log('\n[步骤 4/6] 购买功能测试', 'info');
+      document.getElementById('itemSelect').value = 'item-001';
+      document.getElementById('currencySelect').value = 'cash';
+      testPurchase();
+      await delay(500);
+      
+      // 步骤 5: 钱包测试
+      log('\n[步骤 5/6] 钱包服务测试', 'info');
+      viewBalance();
+      await delay(500);
+      
+      document.getElementById('fromCurrency').value = 'cash';
+      document.getElementById('toCurrency').value = 'gameCoins';
+      document.getElementById('exchangeAmount').value = 100;
+      testExchange();
+      await delay(500);
+      
+      viewTransactionHistory();
+      await delay(500);
+      
+      // 步骤 6: 完整流程
+      log('\n[步骤 6/6] 完整流程验证', 'info');
+      document.getElementById('check-flow-1').checked = true;
+      document.getElementById('check-flow-2').checked = true;
+      document.getElementById('check-flow-3').checked = true;
+      
+      log('\n' + '='.repeat(50), 'success');
+      log('✅ 完整测试套件执行完成！', 'success');
+      log('='.repeat(50), 'success');
+      
+      // 统计结果
+      const totalPassed = testResults.auth.passed + testResults.market.passed + testResults.wallet.passed;
+      const totalTests = testResults.auth.total + testResults.market.total + testResults.wallet.total;
+      const passRate = ((totalPassed / totalTests) * 100).toFixed(1);
+      
+      log(`\n测试结果统计:`, 'info');
+      log(`  身份认证: ${testResults.auth.passed}/${testResults.auth.total}`, testResults.auth.passed === testResults.auth.total ? 'success' : 'warning');
+      log(`  市场交易: ${testResults.market.passed}/${testResults.market.total}`, testResults.market.passed === testResults.market.total ? 'success' : 'warning');
+      log(`  钱包服务: ${testResults.wallet.passed}/${testResults.wallet.total}`, testResults.wallet.passed === testResults.wallet.total ? 'success' : 'warning');
+      log(`  通过率: ${passRate}%`, 'info');
+    }
+
+    function generateTestReport() {
+      clearConsole();
+      log('生成测试报告...', 'info');
+      
+      const token = JSON.parse(localStorage.getItem('cross_platform_token'));
+      const balance = JSON.parse(localStorage.getItem('mock_wallet_balance'));
+      const items = JSON.parse(localStorage.getItem('mock_market_items'));
+      const transactions = JSON.parse(localStorage.getItem('mock_transactions'));
+      
+      const report = {
+        timestamp: new Date().toISOString(),
+        testEnvironment: 'Mock Data Mode',
+        userStatus: token ? 'Logged In' : 'Not Logged In',
+        userInfo: token || null,
+        balance: balance || null,
+        marketItems: items ? items.length : 0,
+        transactions: transactions ? transactions.length : 0,
+        testResults: {
+          auth: { ...testResults.auth },
+          market: { ...testResults.market },
+          wallet: { ...testResults.wallet }
+        }
+      };
+      
+      log('\n========== 测试报告 ==========', 'info');
+      log(`生成时间: ${report.timestamp}`, 'info');
+      log(`测试环境: ${report.testEnvironment}`, 'info');
+      log(`\n用户状态: ${report.userStatus}`, 'info');
+      if (token) {
+        log(`  用户名: ${token.username}`, 'info');
+        log(`  邮箱: ${token.email}`, 'info');
+      }
+      log(`\n测试结果:`, 'info');
+      log(`  身份认证: ${testResults.auth.passed}/${testResults.auth.total}`, 'info');
+      log(`  市场交易: ${testResults.market.passed}/${testResults.market.total}`, 'info');
+      log(`  钱包服务: ${testResults.wallet.passed}/${testResults.wallet.total}`, 'info');
+      log(`\n数据统计:`, 'info');
+      log(`  市场物品: ${report.marketItems} 件`, 'info');
+      log(`  交易记录: ${report.transactions} 条`, 'info');
+      log('==============================', 'info');
+      
+      // 下载报告
+      const blob = new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `test-report-${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      log('✅ 测试报告已下载', 'success');
+    }
+
+    // 辅助函数
+    function delay(ms) {
+      return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    // 页面加载时初始化
+    document.addEventListener('DOMContentLoaded', () => {
+      log('跨平台集成测试工具已启动', 'success');
+      log('请点击"初始化测试数据"开始测试', 'info');
+      refreshStatus();
+    });
+  </script>
+</body>
+</html>

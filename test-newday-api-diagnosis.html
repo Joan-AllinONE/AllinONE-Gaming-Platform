@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Day API 诊断工具</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #1a1a2e;
+            color: #eee;
+        }
+        .container {
+            background: #16213e;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+        .test-item {
+            display: flex;
+            align-items: center;
+            padding: 12px;
+            margin: 8px 0;
+            background: #0f3460;
+            border-radius: 6px;
+            border-left: 4px solid #555;
+        }
+        .test-item.pending { border-left-color: #555; }
+        .test-item.loading { border-left-color: #f39c12; }
+        .test-item.success { border-left-color: #27ae60; }
+        .test-item.error { border-left-color: #e74c3c; }
+        .status {
+            font-weight: bold;
+            margin-right: 15px;
+            min-width: 80px;
+        }
+        .status.pending { color: #95a5a6; }
+        .status.loading { color: #f39c12; }
+        .status.success { color: #27ae60; }
+        .status.error { color: #e74c3c; }
+        .message {
+            flex: 1;
+        }
+        .data-display {
+            background: #0f3460;
+            padding: 15px;
+            border-radius: 6px;
+            margin-top: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        button {
+            background: #e94560;
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        button:hover {
+            background: #ff6b6b;
+        }
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+        }
+        h2 {
+            color: #e94560;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 New Day API 诊断工具</h1>
+
+    <div class="container">
+        <button id="runTests" onclick="runAllTests()">▶️ 开始诊断</button>
+        <div id="progress" style="margin-top: 10px; color: #95a5a6;"></div>
+    </div>
+
+    <div class="container">
+        <h2>📊 诊断结果</h2>
+        <div id="testResults"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'https://yxp6y2qgnh.coze.site';
+        const SHARED_API = `${API_BASE}/api/shared`;
+        const ALLINONE_API = `${API_BASE}/api/allinone`;
+
+        const testResults = [
+            { name: '1. 共享市场 API (无需认证)', status: 'pending', message: '', data: null },
+            { name: '2. 共享钱包 API (无需认证)', status: 'pending', message: '', data: null },
+            { name: '3. AllinONE 登录 API', status: 'pending', message: '', data: null },
+            { name: '4. AllinONE 钱包 API (需要认证)', status: 'pending', message: '', data: null },
+            { name: '5. AllinONE 库存 API (需要认证)', status: 'pending', message: '', data: null },
+            { name: '6. AllinONE 市场 API (需要认证)', status: 'pending', message: '', data: null },
+        ];
+
+        async function runAllTests() {
+            const button = document.getElementById('runTests');
+            const progress = document.getElementById('progress');
+            button.disabled = true;
+            progress.textContent = '正在诊断...';
+
+            let token = null;
+
+            try {
+                // 测试 1: 共享市场
+                await testSharedMarket();
+
+                // 测试 2: 共享钱包
+                await testSharedWallet();
+
+                // 测试 3: 登录（不阻塞后续测试）
+                const loginResult = await testLogin();
+                token = loginResult.token;
+
+                // 测试 4-6: 认证相关的 API（即使登录失败也尝试）
+                if (token) {
+                    await testAllinOneWallet(token);
+                    await testAllinOneInventory(token);
+                    await testAllinOneMarket(token);
+                } else {
+                    updateTestStatus(3, 'error', '跳过（需要认证）');
+                    updateTestStatus(4, 'error', '跳过（需要认证）');
+                    updateTestStatus(5, 'error', '跳过（需要认证）');
+                }
+
+                progress.textContent = '✅ 诊断完成';
+            } catch (error) {
+                progress.textContent = '❌ 诊断过程出错: ' + error.message;
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        async function testSharedMarket() {
+            updateTestStatus(0, 'loading', '正在测试共享市场...');
+            try {
+                const response = await fetch(`${SHARED_API}/marketplace`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestStatus(0, 'success', `成功，返回 ${data.items?.length || 0} 个物品`, data);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateTestStatus(0, 'error', error.message);
+            }
+        }
+
+        async function testSharedWallet() {
+            updateTestStatus(1, 'loading', '正在测试共享钱包...');
+            try {
+                const response = await fetch(`${SHARED_API}/wallet/diagnostic-test-${Date.now()}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestStatus(1, 'success', '成功创建钱包', data);
+                } else {
+                    const errorData = await response.json().catch(() => ({}));
+                    throw new Error(`HTTP ${response.status}: ${errorData.message || errorData.error || '未知错误'}`);
+                }
+            } catch (error) {
+                updateTestStatus(1, 'error', error.message);
+            }
+        }
+
+        async function testLogin() {
+            updateTestStatus(2, 'loading', '正在测试登录...');
+            try {
+                const response = await fetch(`${ALLINONE_API}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        allinoneUserId: 'test-user-123',
+                        allinoneUsername: 'testuser'
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success && data.data && data.data.token) {
+                    updateTestStatus(2, 'success', '登录成功', {
+                        token: data.data.token.substring(0, 20) + '...',
+                        userId: data.data.userId
+                    });
+                    return { token: data.data.token };
+                } else {
+                    updateTestStatus(2, 'error', data.message || '登录失败');
+                    return { token: null };
+                }
+            } catch (error) {
+                updateTestStatus(2, 'error', error.message);
+                return { token: null };
+            }
+        }
+
+        async function testAllinOneWallet(token) {
+            updateTestStatus(3, 'loading', '正在测试 AllinONE 钱包...');
+            try {
+                const response = await fetch(`${ALLINONE_API}/wallet/balance`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestStatus(3, 'success', '成功获取钱包', data);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateTestStatus(3, 'error', error.message);
+            }
+        }
+
+        async function testAllinOneInventory(token) {
+            updateTestStatus(4, 'loading', '正在测试 AllinONE 库存...');
+            try {
+                const response = await fetch(`${ALLINONE_API}/inventory`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestStatus(4, 'success', `成功获取 ${data.items?.length || 0} 个物品`, data);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateTestStatus(4, 'error', error.message);
+            }
+        }
+
+        async function testAllinOneMarket(token) {
+            updateTestStatus(5, 'loading', '正在测试 AllinONE 市场...');
+            try {
+                const response = await fetch(`${ALLINONE_API}/market/list`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const data = await response.json();
+                    updateTestStatus(5, 'success', `成功获取 ${data.items?.length || 0} 个物品`, data);
+                } else {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+            } catch (error) {
+                updateTestStatus(5, 'error', error.message);
+            }
+        }
+
+        function updateTestStatus(index, status, message, data) {
+            testResults[index].status = status;
+            testResults[index].message = message;
+            if (data) testResults[index].data = data;
+            renderResults();
+        }
+
+        function renderResults() {
+            const container = document.getElementById('testResults');
+            container.innerHTML = testResults.map((test, index) => `
+                <div class="test-item ${test.status}">
+                    <div class="status ${test.status}">${test.status.toUpperCase()}</div>
+                    <div class="message">
+                        <strong>${test.name}</strong><br>
+                        ${test.message}
+                    </div>
+                </div>
+                ${test.data ? `<div class="data-display">${JSON.stringify(test.data, null, 2)}</div>` : ''}
+            `).join('');
+        }
+
+        renderResults();
+    </script>
+</body>
+</html>
