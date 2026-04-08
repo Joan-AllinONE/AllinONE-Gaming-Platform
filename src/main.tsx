@@ -6,7 +6,7 @@ import App from "./App.tsx";
 import "./index.css";
 import { initCloudBase } from "./services/cloudbase.ts";
 
-const basename = import.meta.env.PROD ? '/AllinONE-Gaming-Platform' : '/';
+const basename = '/AllinONE-Gaming-Platform';
 
 // 初始化 CloudBase（不阻塞应用启动）
 initCloudBase().catch((err) => {
