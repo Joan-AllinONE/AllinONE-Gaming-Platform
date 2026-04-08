@@ -5,7 +5,7 @@ import { AuthContext } from '@/contexts/authContext';
 import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
-import { validateTestAccount, getTestAccountCredentials } from '@/data/testAccounts';
+import { validateUser, getTestAccountCredentials } from '@/data/testAccounts';
 import { crossPlatformAuthService } from '@/services/crossPlatformAuthService';
 
 export default function Login() {
@@ -27,7 +27,7 @@ export default function Login() {
     // 验证测试账号
     setTimeout(async () => {
       if (username && password) {
-        const account = validateTestAccount(username, password);
+        const account = validateUser(username, password);
         if (account) {
           // 保存用户数据到localStorage
           localStorage.setItem('currentUser', JSON.stringify(account));

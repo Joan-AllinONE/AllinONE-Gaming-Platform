@@ -6,6 +6,7 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
+import { saveRegisteredUser } from '@/data/testAccounts';
 
 // 表单验证schema
 const registerSchema = z.object({
@@ -45,11 +46,22 @@ export default function Register() {
   const onSubmit = (data: RegisterFormData) => {
     setIsLoading(true);
     
-    // 模拟注册请求
+    // 执行真实注册
     setTimeout(() => {
-      toast.success('注册成功！请登录您的账户');
-      navigate('/login');
-      setIsLoading(false);
+      try {
+        saveRegisteredUser({
+          username: data.username,
+          email: data.email,
+          password: data.password
+        });
+        toast.success('注册成功！请登录您的账户');
+        navigate('/login');
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : '注册失败';
+        toast.error(errorMessage);
+      } finally {
+        setIsLoading(false);
+      }
     }, 1500);
   };
   

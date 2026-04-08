@@ -271,3 +271,82 @@ export const getTestAccountCredentials = () => {
     level: account.profile.level
   }));
 };
+
+// ============ 注册用户管理 ============
+const REGISTERED_USERS_KEY = 'allinone_registered_users';
+
+// 获取所有注册用户
+export const getRegisteredUsers = (): TestAccount[] => {
+  if (typeof window === 'undefined') return [];
+  const stored = localStorage.getItem(REGISTERED_USERS_KEY);
+  if (!stored) return [];
+  try {
+    return JSON.parse(stored);
+  } catch {
+    return [];
+  }
+};
+
+// 保存注册用户
+export const saveRegisteredUser = (userData: Omit<TestAccount, 'id' | 'profile' | 'gameData' | 'gameHistory'>): TestAccount => {
+  const users = getRegisteredUsers();
+  
+  // 检查用户名是否已存在
+  const existingUser = [...testAccounts, ...users].find(u => u.username === userData.username);
+  if (existingUser) {
+    throw new Error('用户名已存在');
+  }
+  
+  // 检查邮箱是否已存在
+  const existingEmail = [...testAccounts, ...users].find(u => u.email === userData.email);
+  if (existingEmail) {
+    throw new Error('邮箱已被注册');
+  }
+  
+  const newUser: TestAccount = {
+    id: `user-${Date.now()}`,
+    username: userData.username,
+    password: userData.password,
+    email: userData.email,
+    profile: {
+      nickname: userData.username,
+      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${userData.username}`,
+      level: 1,
+      joinDate: new Date().toISOString().split('T')[0],
+      totalGames: 0,
+      totalEarnings: 0
+    },
+    gameData: {
+      totalPower: 100,
+      dailyEarnings: 0,
+      gameCoins: 1000,
+      level: 1,
+      experience: 0,
+      experienceToNext: 1000,
+      multiplier: 1.0
+    },
+    gameHistory: []
+  };
+  
+  users.push(newUser);
+  localStorage.setItem(REGISTERED_USERS_KEY, JSON.stringify(users));
+  
+  return newUser;
+};
+
+// 验证所有用户（测试账号 + 注册用户）
+export const validateUser = (username: string, password: string): TestAccount | null => {
+  // 先检查测试账号
+  const testAccount = testAccounts.find(
+    acc => acc.username === username && acc.password === password
+  );
+  if (testAccount) return testAccount;
+  
+  // 再检查注册用户
+  const registeredUsers = getRegisteredUsers();
+  const registeredUser = registeredUsers.find(
+    acc => acc.username === username && acc.password === password
+  );
+  
+  return registeredUser || null;
+};
