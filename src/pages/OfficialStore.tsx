@@ -4,6 +4,7 @@ import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
 import { officialStoreService } from '@/services/officialStoreService';
 import { useWallet } from '@/hooks/useWallet';
+import { voucherPaymentService } from '@/services/voucherPaymentService';
 import { 
   OfficialStoreItem, 
   StoreCategory, 
@@ -19,6 +20,7 @@ interface UserWallet {
   computingPower: number;
   cash: number;
   aCoins: number;
+  vouchers: number;        // 凭证A币（testA币）
   totalValue: number;
 }
 
@@ -43,6 +45,14 @@ export default function OfficialStore() {
   const loadStoreData = async () => {
     try {
       setLoading(true);
+      
+      // 初始化平台凭证库存（首次访问时）
+      try {
+        voucherPaymentService.initializePlatformPool();
+      } catch (error) {
+        console.warn('初始化平台库存失败:', error);
+      }
+
       const [storeItems, storeCategories, featured] = await Promise.all([
         officialStoreService.getItems(selectedCategory),
         officialStoreService.getCategories(),
@@ -92,6 +102,10 @@ export default function OfficialStore() {
           hasEnoughBalance = userWallet.aCoins >= priceOption.amount;
           balanceText = `${priceOption.amount} A币`;
           break;
+        case PaymentMethod.VOUCHER:
+          hasEnoughBalance = (userWallet.vouchers || 0) >= priceOption.amount;
+          balanceText = `${priceOption.amount} testA币`;
+          break;
       }
 
       if (!hasEnoughBalance) {
@@ -103,10 +117,11 @@ export default function OfficialStore() {
       
       if (!confirm(confirmMessage)) return;
 
-      // 执行购买
+      // 执行购买 - 使用真实的凭证用户ID
+      const currentUserId = localStorage.getItem('voucher_guest_id') || 'anonymous';
       const purchase = await officialStoreService.purchaseItem(
         item.id, 
-        'current-user-id', 
+        currentUserId, 
         paymentMethod
       );
 
@@ -139,6 +154,7 @@ export default function OfficialStore() {
       case PaymentMethod.GAME_COINS: return '游戏币';
       case PaymentMethod.COMPUTING_POWER: return '算力';
       case PaymentMethod.A_COINS: return 'A币';
+      case PaymentMethod.VOUCHER: return 'testA币';
       default: return method;
     }
   };
@@ -156,6 +172,8 @@ export default function OfficialStore() {
         return userWallet.computingPower >= price.amount;
       case PaymentMethod.A_COINS:
         return userWallet.aCoins >= price.amount;
+      case PaymentMethod.VOUCHER:
+        return (userWallet.vouchers || 0) >= price.amount;
       default:
         return false;
     }
@@ -240,8 +258,9 @@ export default function OfficialStore() {
                 <div className="flex items-center gap-2">
                   <i className="fa-solid fa-a text-purple-600 dark:text-purple-400"></i>
                   <span className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                    {userWallet?.aCoins.toLocaleString() ?? '0'}
+                    {userWallet?.vouchers?.toLocaleString() ?? '0'}
                   </span>
+                  <span className="text-xs text-purple-500 dark:text-purple-400">testA币</span>
                 </div>
               </div>
               <Link 
@@ -287,6 +306,7 @@ export default function OfficialStore() {
                       {item.prices[0].method === PaymentMethod.GAME_COINS ? ' 币' : ''}
                       {item.prices[0].method === PaymentMethod.COMPUTING_POWER ? ' 算力' : ''}
                       {item.prices[0].method === PaymentMethod.A_COINS ? ' A币' : ''}
+                      {item.prices[0].method === PaymentMethod.VOUCHER ? ' testA币' : ''}
                     </div>
                     <button
                       onClick={() => handlePurchase(item, item.prices[0].method)}
@@ -426,6 +446,7 @@ export default function OfficialStore() {
                             {price.method === PaymentMethod.GAME_COINS ? ' 币' : ''}
                             {price.method === PaymentMethod.COMPUTING_POWER ? ' 算力' : ''}
                             {price.method === PaymentMethod.A_COINS ? ' A币' : ''}
+                            {price.method === PaymentMethod.VOUCHER ? ' testA币' : ''}
                           </span>
                           {price.originalAmount && (
                             <span className="text-sm text-slate-400 line-through">

@@ -12,6 +12,7 @@ import { MarketItem } from '@/types/marketplace';
 import { fundPoolService } from './fundPoolService';
 import { walletService } from './walletService';
 import { inventoryApiService } from './inventoryApiService';
+import { voucherPaymentService } from './voucherPaymentService';
 import { NewDayStoreItem, NewDayItemType, NewDayRarity } from '@/types/newDay';
 
 class OfficialStoreService {
@@ -107,7 +108,8 @@ class OfficialStoreService {
         category: 'props',
         prices: [
           { method: PaymentMethod.REAL_MONEY, amount: 9.99 },
-          { method: PaymentMethod.GAME_COINS, amount: 1000 }
+          { method: PaymentMethod.GAME_COINS, amount: 1000 },
+          { method: PaymentMethod.VOUCHER, amount: 50 }
         ],
         stock: 100,
         dailyLimit: 3,
@@ -130,7 +132,8 @@ class OfficialStoreService {
         category: 'props',
         prices: [
           { method: PaymentMethod.GAME_COINS, amount: 200 },
-          { method: PaymentMethod.COMPUTING_POWER, amount: 500 }
+          { method: PaymentMethod.COMPUTING_POWER, amount: 500 },
+          { method: PaymentMethod.VOUCHER, amount: 5 }
         ],
         stock: -1,
         dailyLimit: 5,
@@ -147,21 +150,21 @@ class OfficialStoreService {
       },
       {
         id: 'prop_003',
-        name: 'A币礼包',
-        description: '购买后可获得A币',
+        name: 'testA币凭证礼包',
+        description: '购买后获得等值的testA币凭证，平台通用货币',
         type: StoreItemType.PROPS,
         category: 'props',
         prices: [
-          { method: PaymentMethod.A_COINS, amount: 10 }
+          { method: PaymentMethod.VOUCHER, amount: 10 }
         ],
-        stock: 100,
-        dailyLimit: 1,
-        tags: ['稀有'],
+        stock: -1,
+        dailyLimit: 10,
+        tags: ['热门', '通用'],
         rewards: [
           { type: 'a_coins', amount: 10 }
         ],
         icon: 'fa-coins',
-        rarity: 'epic',
+        rarity: 'common',
         featured: true,
         popular: true,
         createdAt: now,
@@ -401,8 +404,66 @@ class OfficialStoreService {
       throw new Error('不支持的支付方式');
     }
 
-    // 计算商品价格和佣金
+    // 计算商品价格和佣金（凭证支付不收取佣金）
     const itemPrice = priceOption.amount * quantity;
+    
+    // ==================== 凭证A币（testA币）支付 ====================
+    if (paymentMethod === PaymentMethod.VOUCHER) {
+      // 使用凭证服务进行支付（纯transfer流程，自动记录交易）
+      const paymentResult = voucherPaymentService.payWithVoucher(
+        userId,
+        '用户',
+        itemPrice,
+        `官方商店购买: ${item.name}`
+      );
+
+      if (!paymentResult.success) {
+        throw new Error(paymentResult.message);
+      }
+
+      console.log('[OfficialStore] 凭证A币支付成功:', paymentResult.message);
+
+      // 创建购买记录（凭证支付无佣金）
+      const purchase: PurchaseRecord = {
+        id: `purchase_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        userId,
+        itemId,
+        itemName: item.name,
+        paymentMethod,
+        amount: itemPrice,
+        commission: 0,
+        totalAmount: itemPrice,
+        rewards: item.rewards.map(reward => ({
+          ...reward,
+          amount: reward.amount * quantity
+        })),
+        timestamp: new Date(),
+        status: 'completed'
+      };
+
+      // 更新库存
+      if (item.stock !== undefined && item.stock !== -1) {
+        item.stock -= quantity;
+      }
+
+      // 将道具类商品添加到用户库存
+      if (item.type === StoreItemType.PROPS) {
+        await this.addItemToUserInventory(userId, item);
+      }
+
+      // 保存购买记录
+      this.purchaseHistory.push(purchase);
+      const userHistory = this.userPurchases.get(userId) || [];
+      userHistory.push(purchase);
+      this.userPurchases.set(userId, userHistory);
+
+      // 触发钱包刷新事件
+      window.dispatchEvent(new CustomEvent('wallet-updated'));
+
+      return purchase;
+    }
+
+    // ==================== 非凭证支付（原有流程） ====================
     const { commission, totalAmount } = this.calculateCommission(itemPrice);
 
     // 记录佣金到资金池（仅现金支付时记录佣金）
@@ -423,7 +484,8 @@ class OfficialStoreService {
     // 记录用户的商品购买和佣金支付到钱包（分别记录两笔交易）
     const currencyType = paymentMethod === PaymentMethod.REAL_MONEY ? 'cash' :
                        paymentMethod === PaymentMethod.GAME_COINS ? 'gameCoins' :
-                       paymentMethod === PaymentMethod.A_COINS ? 'aCoins' : 'computingPower';
+                       paymentMethod === PaymentMethod.A_COINS ? 'aCoins' : 
+                       paymentMethod === PaymentMethod.VOUCHER ? 'aCoins' : 'computingPower';
     
     try {
       // 1. 记录商品购买支出
@@ -474,27 +536,7 @@ class OfficialStoreService {
 
     // 将道具类商品添加到用户库存（个人中心）
     if (item.type === StoreItemType.PROPS) {
-      try {
-        // 创建道具对象，添加到marketplace服务的用户库存中
-        const marketItem: MarketItem = {
-          id: `owned_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-          name: item.name,
-          description: item.description,
-          category: this.mapStoreItemToMarketCategory(item.category),
-          rarity: item.rarity || 'common',
-          price: 0, // 已拥有，不显示价格
-          sellerId: 'official-store',
-          sellerName: '官方商店',
-          listedAt: new Date(),
-          views: 0,
-          gameSource: '官方商店'
-        };
-
-        // 添加到用户库存
-        await marketplaceService.addItemToUserInventory(userId, marketItem);
-      } catch (error) {
-        console.error('添加道具到用户库存失败:', error);
-      }
+      await this.addItemToUserInventory(userId, item);
     }
 
     // 保存购买记录
@@ -567,6 +609,31 @@ class OfficialStoreService {
       recentPurchases,
       categoryStats
     };
+  }
+
+  /**
+   * 将道具添加到用户库存
+   */
+  private async addItemToUserInventory(userId: string, item: OfficialStoreItem): Promise<void> {
+    try {
+      const marketItem: MarketItem = {
+        id: `owned_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
+        name: item.name,
+        description: item.description,
+        category: this.mapStoreItemToMarketCategory(item.category),
+        rarity: item.rarity || 'common',
+        price: 0,
+        sellerId: 'official-store',
+        sellerName: '官方商店',
+        listedAt: new Date(),
+        views: 0,
+        gameSource: '官方商店'
+      };
+
+      await marketplaceService.addItemToUserInventory(userId, marketItem);
+    } catch (error) {
+      console.error('添加道具到用户库存失败:', error);
+    }
   }
 
   // 辅助方法：将官方商店商品分类映射到交易市场分类
@@ -1036,9 +1103,12 @@ class OfficialStoreService {
         case PaymentMethod.A_COINS:
           acc.aCoins += purchase.amount;
           break;
+        case PaymentMethod.VOUCHER:
+          acc.vouchers += purchase.amount;
+          break;
       }
       return acc;
-    }, { realMoney: 0, gameCoins: 0, computingPower: 0, aCoins: 0 });
+    }, { realMoney: 0, gameCoins: 0, computingPower: 0, aCoins: 0, vouchers: 0 });
 
     const recentPurchases = [...purchases]
       .sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())

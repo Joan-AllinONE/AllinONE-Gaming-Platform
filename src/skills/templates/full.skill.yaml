@@ -1,0 +1,467 @@
+# Skill 配置 - 完整版（YAML格式）
+# 适用于复杂游戏场景
+
+game:
+  id: mmorpg-world
+  name: 魔法世界
+  description: 一个充满魔法与冒险的开放世界MMORPG
+  version: 2.0.0
+  icon: https://example.com/game-icon.png
+
+features:
+  - wallet
+  - store
+  - inventory
+  - leaderboard
+  - achievements
+
+# 钱包配置
+wallet:
+  enabled: true
+  currencies:
+    - id: copper
+      name: 铜币
+      type: basic
+      initialBalance: 500
+      exchangeable: false
+      icon: 🪙
+    
+    - id: silver
+      name: 银币
+      type: standard
+      initialBalance: 50
+      exchangeable: true
+      exchangeRate:
+        copper: 100  # 1银币 = 100铜币
+      icon: 🥈
+    
+    - id: gold
+      name: 金币
+      type: premium
+      initialBalance: 5
+      exchangeable: true
+      exchangeRate:
+        silver: 100
+        copper: 10000
+      icon: 🥇
+    
+    - id: diamond
+      name: 钻石
+      type: rare
+      initialBalance: 0
+      exchangeable: false
+      icon: 💎
+    
+    - id: computing
+      name: 算力
+      type: system
+      initialBalance: 0
+      exchangeable: true
+      icon: ⚡
+
+  # 自动奖励系统
+  rewards:
+    - trigger: daily_login
+      reward:
+        copper: 100
+        computing: 5
+      description: 每日登录奖励
+    
+    - trigger: consecutive_7_days
+      reward:
+        silver: 10
+        computing: 50
+      description: 连续登录7天奖励
+    
+    - trigger: level_up
+      reward:
+        silver: 50
+        computing: 20
+      conditions:
+        minLevel: 1
+        maxLevel: 100
+    
+    - trigger: first_purchase
+      reward:
+        gold: 1
+      description: 首次购买奖励
+
+# 商店配置
+store:
+  enabled: true
+  template: fantasy_magic  # 使用魔法主题UI
+  
+  categories:
+    - id: weapons
+      name: 武器装备
+      icon: ⚔️
+      description: 各类武器，提升战斗力
+      sortOrder: 1
+    
+    - id: armors
+      name: 防具装备
+      icon: 🛡️
+      description: 保护装备，增加防御力
+      sortOrder: 2
+    
+    - id: magic_items
+      name: 魔法物品
+      icon: 🔮
+      description: 神秘的魔法道具
+      sortOrder: 3
+      requireLevel: 10
+    
+    - id: consumables
+      name: 消耗品
+      icon: 🧪
+      description: 恢复类道具
+      sortOrder: 4
+    
+    - id: mounts
+      name: 坐骑
+      icon: 🐴
+      description: 快速移动工具
+      sortOrder: 5
+      requireLevel: 20
+    
+    - id: vip
+      name: VIP专区
+      icon: 👑
+      description: 会员专属商品
+      sortOrder: 99
+      requireVip: true
+
+  products:
+    # 武器装备
+    - id: wooden_sword
+      name: 木剑
+      category: weapons
+      description: 新手训练用的木剑
+      price:
+        copper: 50
+      stock: 999
+      levelRequired: 1
+      
+    - id: iron_sword
+      name: 铁剑
+      category: weapons
+      description: 坚固耐用的铁剑
+      price:
+        copper: 500
+      stock: 500
+      levelRequired: 5
+      
+    - id: magic_sword
+      name: 魔法剑
+      category: weapons
+      description: 蕴含魔法力量的宝剑
+      price:
+        silver: 50
+        gold: 5
+      stock: 100
+      levelRequired: 20
+      effects:
+        damage: +50
+        magicDamage: +30
+
+    # 防具装备
+    - id: cloth_armor
+      name: 布衣
+      category: armors
+      description: 轻便的布衣
+      price:
+        copper: 30
+      stock: 999
+      
+    - id: leather_armor
+      name: 皮甲
+      category: armors
+      description: 结实的皮甲
+      price:
+        copper: 300
+      stock: 500
+      levelRequired: 3
+      
+    - id: plate_armor
+      name: 板甲
+      category: armors
+      description: 厚重的金属板甲
+      price:
+        silver: 30
+      stock: 200
+      levelRequired: 15
+      effects:
+        defense: +50
+        speed: -10
+
+    # 消耗品
+    - id: small_hp_potion
+      name: 小型生命药水
+      category: consumables
+      description: 恢复20点生命值
+      price:
+        copper: 10
+      stock: 9999
+      effects:
+        hp: +20
+        
+    - id: medium_hp_potion
+      name: 中型生命药水
+      category: consumables
+      description: 恢复50点生命值
+      price:
+        copper: 25
+      stock: 9999
+      levelRequired: 5
+      effects:
+        hp: +50
+        
+    - id: large_hp_potion
+      name: 大型生命药水
+      category: consumables
+      description: 恢复100点生命值
+      price:
+        copper: 50
+      stock: 9999
+      levelRequired: 15
+      effects:
+        hp: +100
+        
+    - id: revive_scroll
+      name: 复活卷轴
+      category: consumables
+      description: 死亡后立即复活
+      price:
+        silver: 10
+      stock: 100
+      levelRequired: 10
+      dailyLimit: 3
+
+    # 魔法物品
+    - id: teleport_scroll
+      name: 传送卷轴
+      category: magic_items
+      description: 传送到已解锁的地点
+      price:
+        silver: 5
+      stock: 500
+      levelRequired: 10
+      
+    - id: identify_scroll
+      name: 鉴定卷轴
+      category: magic_items
+      description: 鉴定未知物品
+      price:
+        copper: 100
+      stock: 500
+      levelRequired: 10
+      
+    - id: enchantment_stone
+      name: 附魔石
+      category: magic_items
+      description: 为装备附加魔法属性
+      price:
+        gold: 2
+      stock: 100
+      levelRequired: 25
+
+    # 坐骑
+    - id: horse
+      name: 普通马匹
+      category: mounts
+      description: 基础坐骑，移动速度+50%
+      price:
+        silver: 100
+      stock: 50
+      levelRequired: 20
+      effects:
+        speed: +50%
+        
+    - id: magic_horse
+      name: 魔法战马
+      category: mounts
+      description: 魔法坐骑，移动速度+100%
+      price:
+        gold: 50
+      stock: 10
+      levelRequired: 40
+      effects:
+        speed: +100%
+        canFly: false
+
+    # VIP专属
+    - id: vip_pack
+      name: VIP新手礼包
+      category: vip
+      description: VIP专属超值礼包
+      price:
+        gold: 10
+      stock: 1
+      vipRequired: true
+      bindOnPurchase: true
+      items:
+        - item: gold
+          quantity: 100
+        - item: magic_sword
+          quantity: 1
+        - item: teleport_scroll
+          quantity: 10
+
+# 库存配置
+inventory:
+  enabled: true
+  syncMode: realtime  # realtime | manual | hourly
+  maxSlots: 100
+  maxStackSize: 999
+  
+  categories:
+    - weapons
+    - armors
+    - consumables
+    - materials
+    - quest_items
+    - valuables
+  
+  autoSort: true
+  showItemDetails: true
+
+# 排行榜配置
+leaderboard:
+  enabled: true
+  
+  categories:
+    - id: level
+      name: 等级榜
+      sortBy: level
+      resetPeriod: never
+      
+    - id: wealth
+      name: 财富榜
+      sortBy: totalCurrency
+      resetPeriod: weekly
+      
+    - id: combat
+      name: 战力榜
+      sortBy: combatPower
+      resetPeriod: monthly
+      
+    - id: achievements
+      name: 成就榜
+      sortBy: achievementPoints
+      resetPeriod: never
+
+# 成就系统
+achievements:
+  enabled: true
+  
+  categories:
+    - id: exploration
+      name: 探索
+      icon: 🗺️
+      
+    - id: combat
+      name: 战斗
+      icon: ⚔️
+      
+    - id: social
+      name: 社交
+      icon: 👥
+      
+    - id: collection
+      name: 收集
+      icon: 📦
+  
+  achievements:
+    - id: first_steps
+      name: 初出茅庐
+      category: exploration
+      description: 完成新手教程
+      points: 10
+      reward:
+        copper: 100
+        
+    - id: monster_slayer
+      name: 怪物猎人
+      category: combat
+      description: 击败100只怪物
+      points: 50
+      requirement:
+        type: kill_monsters
+        count: 100
+      reward:
+        silver: 10
+        
+    - id: rich_man
+      name: 小有积蓄
+      category: collection
+      description: 累计获得10000铜币
+      points: 30
+      requirement:
+        type: earn_currency
+        currency: copper
+        amount: 10000
+      reward:
+        gold: 1
+
+# 事件钩子（高级）
+hooks:
+  onPlayerLogin: |
+    // 玩家登录时触发
+    console.log("欢迎回来，" + player.name);
+    
+    // 检查连续登录
+    if (player.consecutiveLogins >= 7) {
+      this.execute('addBalance', {
+        currency: 'silver',
+        amount: 10,
+        reason: '连续登录7天奖励'
+      });
+    }
+    
+    // 更新统计数据
+    player.stats.lastLogin = Date.now();
+    
+  onPurchaseComplete: |
+    // 购买完成时触发
+    console.log("购买成功：" + item.name);
+    
+    // 首购奖励
+    if (player.stats.totalPurchases === 1) {
+      this.execute('addBalance', {
+        currency: 'gold',
+        amount: 1,
+        reason: '首次购买奖励'
+      });
+    }
+    
+    // 发送通知
+    this.notify(player.id, 'purchase_success', {
+      itemName: item.name,
+      quantity: quantity
+    });
+    
+  onLevelUp: |
+    // 升级时触发
+    console.log("恭喜升级！当前等级：" + newLevel);
+    
+    // 等级奖励
+    const reward = {
+      copper: newLevel * 50,
+      computing: newLevel * 2
+    };
+    
+    for (const [currency, amount] of Object.entries(reward)) {
+      this.execute('addBalance', {
+        currency,
+        amount,
+        reason: '升级奖励'
+      });
+    }
+    
+    // 解锁新功能提示
+    if (newLevel === 10) {
+      this.notify(player.id, 'unlock', {
+        feature: 'magic_items',
+        message: '恭喜解锁魔法物品商店！'
+      });
+    }

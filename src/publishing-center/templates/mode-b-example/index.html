@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AllinONE Mode B 示例游戏</title>
+</head>
+<body>
+  <div id="game">
+    <h1>🎮 Mode B 示例游戏</h1>
+    <p>此游戏已集成 @allinone/standard-sdk</p>
+    <p>协议状态: <span id="protocol-status">等待连接...</span></p>
+    <div id="controls" style="margin-top: 20px;">
+      <button onclick="gameComplete()">触发 GAME_COMPLETE 事件</button>
+      <button onclick="redeemDemo()">演示兑换</button>
+    </div>
+    <div id="log" style="margin-top: 20px; padding: 10px; background: #1a1a2e; color: #0f0; font-family: monospace; min-height: 100px; border-radius: 8px;"></div>
+  </div>
+
+  <!-- 引入 AllinONE Standard SDK -->
+  <script src="https://cdn.allinone.game/sdk/v1/standard-sdk.js"></script>
+  <script>
+    (async function() {
+      const log = document.getElementById('log');
+      const status = document.getElementById('protocol-status');
+
+      function logMsg(msg) {
+        const el = document.createElement('div');
+        el.textContent = '[' + new Date().toLocaleTimeString() + '] ' + msg;
+        log.appendChild(el);
+        log.scrollTop = log.scrollHeight;
+      }
+
+      // ===== 定义道具清单 =====
+      var REDEEM_ITEMS = [
+        { itemId: 'slow_mode',    effectType: 'difficulty_reducer', name: '🐸 慢速模式', quantity: 1, effects: { multiplier: 0.6 } },
+        { itemId: 'score_boost',  effectType: 'score_boost',        name: '🌟 分数翻倍', quantity: 1, effects: { multiplier: 2 } },
+        { itemId: 'extra_time',   effectType: 'time_bonus',         name: '⏱ 时间奖励', quantity: 1, effects: { bonusTime: 30 } },
+      ];
+
+      // ===== 初始化 AllinONE SDK =====
+      try {
+        const config = {
+          gameId: 'mode-b-demo-game',
+          gameName: 'Mode B Demo',
+          debug: true,
+          autoInit: true,
+          redeemItems: REDEEM_ITEMS,  // 提供道具清单 → SDK 自动注入兑换条
+          skills: {
+            auth: true,
+            wallet: true,
+            inventory: true,
+            store: true,
+          },
+        };
+
+        if (typeof AllinONEGame !== 'undefined') {
+          const game = new AllinONEGame(config);
+
+          // ===== [关键] 注册效果处理器 — 兑换码验证通过后由 SDK 内部调用 =====
+          // 游戏开发者不再写 applyEffect()，而是注册处理器到 SDK
+          // 这样效果只能在兑换码验证通过后激活，无法被直接调用
+
+          game.registerEffect('difficulty_reducer', function(data) {
+            logMsg('🎯 难度降低: 倍率=' + data.effects.multiplier + ' (兑换码验证通过)');
+            // TODO: 在此实现游戏变速逻辑
+          });
+
+          game.registerEffect('score_boost', function(data) {
+            logMsg('🌟 分数翻倍: 倍率=' + data.effects.multiplier + ' (兑换码验证通过)');
+            // TODO: 在此实现分数翻倍逻辑
+          });
+
+          game.registerEffect('time_bonus', function(data) {
+            logMsg('⏱ 时间奖励: +' + data.effects.bonusTime + '秒 (兑换码验证通过)');
+            // TODO: 在此实现时间增加逻辑
+          });
+
+          game.on('ready', () => {
+            status.textContent = '✅ 已连接 (SDK Mode B + 效果注册表)';
+            status.style.color = '#4ade80';
+            logMsg('SDK 就绪，兑换条已注入，效果处理器已注册');
+          });
+
+          // 监听扩展凭证
+          if (game.protocol) {
+            game.protocol.on('voucher', (voucher) => {
+              logMsg('📦 收到扩展凭证: ' + voucher.schemaName);
+              logMsg('数据: ' + JSON.stringify(voucher.data));
+            });
+
+            game.protocol.on('action:start', () => {
+              logMsg('▶️ 平台要求开始游戏');
+            });
+          }
+
+          logMsg('声明支持的 Schema: weapon, shop, quest');
+          logMsg('AllinONE SDK v1.0 + Effect Registry 初始化完成');
+
+          await game.start();
+        } else {
+          // SDK 未加载（本地调试环境）— 注入独立兑换条
+          status.textContent = '⚠️ SDK 未加载（独立兑换条模式）';
+          status.style.color = '#fbbf24';
+          logMsg('AllinONE SDK 不可用 - 使用独立兑换条');
+
+          // 发送 PROTOCOL:READY 信号（延迟重试应对 iframe 时机）
+          function sendReady() {
+            window.parent.postMessage({
+              type: 'PROTOCOL:READY',
+              protocolVersion: '1.0.0',
+              mode: 'integrated',
+              gameId: 'mode-b-demo-game',
+              supportedActions: ['start', 'pause', 'redeem'],
+              supportedSchemas: REDEEM_ITEMS.map(function(i) { return i.effectType; }),
+              timestamp: Date.now(),
+            }, '*');
+          }
+          sendReady();
+          setTimeout(sendReady, 500);
+          setTimeout(sendReady, 2000);
+
+          // 注入独立兑换条
+          (function() {
+            if (document.getElementById('allinone-redeem-bar')) return;
+
+            var styles = document.createElement('style');
+            styles.textContent = [
+              '#allinone-redeem-bar{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:99999;display:none;background:rgba(15,15,25,0.92);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:14px 22px;min-width:380px;max-width:500px;box-shadow:0 12px 48px rgba(0,0,0,0.5);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;color:#fff;transition:all .3s ease;}',
+              '#allinone-redeem-bar.show{display:block;}',
+              '#allinone-redeem-bar .bar-row{display:flex;align-items:center;gap:10px;}',
+              '#allinone-redeem-bar .bar-row input{flex:1;padding:10px 14px;border-radius:10px;border:1px solid rgba(139,92,246,0.3);background:rgba(255,255,255,0.06);color:#fff;font-size:14px;font-family:monospace;letter-spacing:2px;outline:none;transition:border-color .2s;}',
+              '#allinone-redeem-bar .bar-row input:focus{border-color:rgba(139,92,246,0.7);}',
+              '#allinone-redeem-bar .bar-row input::placeholder{font-family:sans-serif;letter-spacing:0;color:rgba(255,255,255,0.3);}',
+              '#allinone-redeem-bar .bar-row .btn-redeem{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#7c3aed,#6366f1);color:#fff;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .1s;white-space:nowrap;}',
+              '#allinone-redeem-bar .bar-row .btn-redeem:hover{opacity:0.9;}',
+              '#allinone-redeem-bar .bar-row .btn-redeem:active{transform:scale(0.97);}',
+              '#allinone-redeem-bar .bar-row .btn-redeem:disabled{opacity:0.5;cursor:not-allowed;}',
+              '#allinone-redeem-bar .bar-row .btn-close{padding:6px 10px;border-radius:8px;border:none;background:rgba(255,255,255,0.08);color:rgba(255,255,255,0.5);font-size:14px;cursor:pointer;transition:background .2s;}',
+              '#allinone-redeem-bar .bar-row .btn-close:hover{background:rgba(255,255,255,0.15);color:#fff;}',
+              '#allinone-redeem-bar .bar-status{margin-top:10px;font-size:12px;text-align:center;display:none;}',
+              '#allinone-redeem-bar .bar-status.show{display:block;}',
+              '#allinone-redeem-bar .bar-status.success{color:#4ade80;}',
+              '#allinone-redeem-bar .bar-status.error{color:#f87171;}',
+              '#allinone-redeem-bar .bar-status.loading{color:#a78bfa;}',
+              '#allinone-redeem-bar .bar-status.info{color:#fbbf24;}',
+              '#allinone-redeem-bar .bar-items{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}',
+              '#allinone-redeem-bar .bar-items .item-chip{padding:4px 10px;border-radius:6px;background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.15);font-size:11px;color:#a78bfa;cursor:pointer;user-select:none;}',
+              '#allinone-redeem-bar .bar-hint{font-size:12px;color:rgba(255,255,255,0.45);margin-bottom:10px;text-align:center;line-height:1.4;}',
+              '#allinone-redeem-bar .bar-items-label{font-size:11px;color:rgba(255,255,255,0.35);margin-top:10px;margin-bottom:4px;text-align:left;}',
+              '#allinone-redeem-toggle{position:fixed;bottom:24px;right:24px;z-index:99998;width:48px;height:48px;border-radius:50%;border:2px solid rgba(124,58,237,0.4);background:rgba(15,15,25,0.85);backdrop-filter:blur(8px);color:#fff;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.4);transition:transform .2s,border-color .2s;}',
+              '#allinone-redeem-toggle:hover{transform:scale(1.05);border-color:rgba(124,58,237,0.7);}',
+              '@keyframes allinone-pulse{0%{opacity:1;}50%{opacity:0.4;}100%{opacity:1;}}',
+              '#allinone-redeem-bar.loading .btn-redeem{animation:allinone-pulse 1.2s ease-in-out infinite;}'
+            ].join('');
+            document.head.appendChild(styles);
+
+            var bar = document.createElement('div');
+            bar.id = 'allinone-redeem-bar';
+            bar.innerHTML = [
+              '<div class="bar-hint">🎮 输入道具兑换码，点击「兑换」激活效果</div>',
+              '<div class="bar-row">',
+                '<input id="allinone-code-input" type="text" placeholder="粘贴或输入兑换码" maxlength="20" spellcheck="false" autocomplete="off">',
+                '<button class="btn-redeem" id="allinone-redeem-btn">兑换</button>',
+                '<button class="btn-close" id="allinone-bar-close">✕</button>',
+              '</div>',
+              '<div class="bar-status" id="allinone-bar-status"></div>',
+              REDEEM_ITEMS.length > 0 ? [
+                '<div class="bar-items-label">本游戏可用道具：</div>',
+                '<div class="bar-items">',
+                  REDEEM_ITEMS.map(function(item) {
+                    return '<span class="item-chip" title="' + item.name + '">' + item.name + '</span>';
+                  }).join(''),
+                '</div>'
+              ].join('') : ''
+            ].join('');
+            document.body.appendChild(bar);
+
+            var toggle = document.createElement('button');
+            toggle.id = 'allinone-redeem-toggle';
+            toggle.innerHTML = '<span>🎁</span>';
+            toggle.title = '兑换道具';
+            document.body.appendChild(toggle);
+
+            var input = document.getElementById('allinone-code-input');
+            var btn = document.getElementById('allinone-redeem-btn');
+            var closeBtn = document.getElementById('allinone-bar-close');
+            var statusEl = document.getElementById('allinone-bar-status');
+
+            toggle.onclick = function() { bar.classList.toggle('show'); if (bar.classList.contains('show')) input.focus(); };
+            closeBtn.onclick = function() { bar.classList.remove('show'); };
+            btn.onclick = function() { doRedeem(); };
+            input.onkeydown = function(e) { if (e.key === 'Enter') doRedeem(); };
+
+            function showStatus(msg, type) {
+              statusEl.textContent = msg;
+              statusEl.className = 'bar-status show ' + type;
+              bar.classList.remove('loading');
+              if (type === 'success') setTimeout(function() { statusEl.classList.remove('show'); }, 4000);
+              else if (type !== 'loading') setTimeout(function() { statusEl.classList.remove('show'); }, 3000);
+            }
+
+            function doRedeem() {
+              var code = input.value.trim();
+              if (!code) { showStatus('请输入兑换码', 'error'); return; }
+              btn.disabled = true;
+              btn.textContent = '验证中...';
+              bar.classList.add('loading');
+              showStatus('正在验证兑换码...', 'loading');
+              window.parent.postMessage({
+                type: 'REDEEM_ITEM',
+                data: { code: code.toUpperCase(), gameId: 'mode-b-demo-game' }
+              }, '*');
+            }
+
+            window.addEventListener('message', function(event) {
+              if (event.data && event.data.type === 'REDEEM_RESULT') {
+                var res = event.data.data;
+                btn.disabled = false;
+                btn.textContent = '兑换';
+                bar.classList.remove('loading');
+                if (res && res.success) {
+                  showStatus('✓ 兑换成功! ' + (res.itemName || '') + ' x' + (res.quantity || 1), 'success');
+                  input.value = '';
+                  setTimeout(function() { bar.classList.remove('show'); }, 1500);
+                  logMsg('🎉 兑换成功: ' + (res.itemName || '道具'));
+                } else {
+                  showStatus('✗ ' + (res.message || '兑换失败'), 'error');
+                }
+              }
+            });
+
+            logMsg('独立兑换条已注入');
+          })();
+        }
+      } catch (error) {
+        logMsg('❌ 初始化失败: ' + error.message);
+        status.textContent = '❌ 连接失败';
+        status.style.color = '#f87171';
+      }
+    })();
+
+    // ===== 游戏事件 =====
+    function gameComplete() {
+      window.parent.postMessage({
+        type: 'GAME_EVENT',
+        event: 'GAME_COMPLETE',
+        data: { score: 2500, level: 3, time: 120 },
+        timestamp: Date.now(),
+      }, '*');
+      document.getElementById('log').innerHTML +=
+        '<div style="color: #4ade80;">📤 GAME_COMPLETE 事件已发送 (score=2500)</div>';
+    }
+
+    function redeemDemo() {
+      window.parent.postMessage({
+        type: 'REDEEM_ITEM',
+        data: { code: 'DEMO-TEST-001', gameId: 'mode-b-demo-game' },
+        timestamp: Date.now(),
+      }, '*');
+      document.getElementById('log').innerHTML +=
+        '<div style="color: #fbbf24;">📤 REDEEM_ITEM 请求已发送</div>';
+    }
+  </script>
+
+  <style>
+    body {
+      margin: 0; padding: 20px;
+      background: #0f172a; color: #e2e8f0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #game { max-width: 600px; margin: 0 auto; }
+    h1 { color: #a78bfa; }
+    button {
+      padding: 10px 20px; margin-right: 10px;
+      background: linear-gradient(135deg, #7c3aed, #6366f1);
+      border: none; border-radius: 8px;
+      color: #fff; font-size: 14px; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s;
+    }
+    button:hover { opacity: 0.9; }
+    #protocol-status {
+      display: inline-block; padding: 4px 12px;
+      border-radius: 12px; background: #1e293b;
+      font-size: 14px; font-weight: 600;
+    }
+  </style>
+</body>
+</html>

@@ -1,9 +1,13 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useContext } from 'react';
 import { Link } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
 import { crossPlatformAuthService } from '@/services/crossPlatformAuthService';
+import { getPublishedGames, type PublishedGame } from '@/services/publishedGameService';
+import { platformBindingService, GameType, type PlatformBindingConfig } from '@/voucher-system';
+import { AuthContext } from '@/contexts/authContext';
+import { Coins, CheckCircle, AlertCircle, X } from 'lucide-react';
 
 interface GameCard {
   id: string;
@@ -18,6 +22,7 @@ interface GameCard {
   players: number;
   status: 'available' | 'coming-soon' | 'maintenance';
   externalUrl?: string; // 外部游戏链接
+  isPublished?: boolean; // 标记是否为通过发布中心发布的游戏
 }
 
 const games: GameCard[] = [
@@ -86,12 +91,6 @@ const games: GameCard[] = [
   }
 ];
 
-const difficultyColors = {
-  easy: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
-  medium: 'text-yellow-600 bg-yellow-100 dark:bg-yellow-900/30 dark:text-yellow-400',
-  hard: 'text-red-600 bg-red-100 dark:bg-red-900/30 dark:text-red-400'
-};
-
 const statusColors = {
   available: 'text-green-600 bg-green-100 dark:bg-green-900/30 dark:text-green-400',
   'coming-soon': 'text-blue-600 bg-blue-100 dark:bg-blue-900/30 dark:text-blue-400',
@@ -107,11 +106,75 @@ const statusText = {
 export default function GameCenter() {
   const { lang } = useLanguage();
   const dict = getDict(lang);
-  const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
+  const { currentUser } = useContext(AuthContext);
+  const [publishedGames, setPublishedGames] = useState<GameCard[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  // 奖励提示状态
+  const [rewardToast, setRewardToast] = useState<{
+    show: boolean;
+    success: boolean;
+    message: string;
+    amount?: number;
+  }>({ show: false, success: false, message: '' });
 
-  const filteredGames = selectedDifficulty === 'all'
-    ? games
-    : games.filter(game => game.difficulty === selectedDifficulty);
+  // 加载已发布的游戏
+  useEffect(() => {
+    const loadPublishedGames = () => {
+      try {
+        const published = getPublishedGames();
+        const formattedGames: GameCard[] = published.map(pg => ({
+          id: pg.id,
+          name: pg.name,
+          description: pg.description,
+          icon: getFrameworkIcon(pg.framework),
+          difficulty: 'medium',
+          rewards: { computingPower: 50, gameCoins: 50 },
+          players: pg.players || 0,
+          status: pg.status,
+          isPublished: true,
+          externalUrl: pg.externalUrl,
+        }));
+        setPublishedGames(formattedGames);
+      } catch (error) {
+        console.error('加载已发布游戏失败:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadPublishedGames();
+    
+    // 监听storage变化，实时更新
+    const handleStorageChange = () => loadPublishedGames();
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
+  // 根据框架获取图标
+  const getFrameworkIcon = (framework: string): string => {
+    const icons: Record<string, string> = {
+      'phaser': 'fa-solid fa-gamepad',
+      'three-js': 'fa-solid fa-cube',
+      'unity-webgl': 'fa-brands fa-unity',
+      'react': 'fa-brands fa-react',
+      'vue': 'fa-brands fa-vuejs',
+      'vanilla-js': 'fa-brands fa-js',
+      'typescript': 'fa-brands fa-js',
+      'rpg-maker': 'fa-solid fa-dragon',
+      'construct': 'fa-solid fa-puzzle-piece',
+    };
+    return icons[framework] || 'fa-solid fa-gamepad';
+  };
+
+  // 合并内置游戏和已发布的游戏
+  const allGames = [...games, ...publishedGames];
+
+  // 所有游戏（不再按难度筛选）
+  const filteredGames = allGames;
 
   /**
    * 生成带自动登录参数的游戏 URL
@@ -138,19 +201,154 @@ export default function GameCenter() {
   }, []);
 
   /**
-   * 处理外部游戏跳转（带自动登录）
+   * 显示奖励提示
    */
-  const handleExternalGameClick = useCallback((game: GameCard) => {
+  const showRewardToast = (success: boolean, message: string, amount?: number) => {
+    setRewardToast({ show: true, success, message, amount });
+    setTimeout(() => {
+      setRewardToast(prev => ({ ...prev, show: false }));
+    }, 4000);
+  };
+
+  /**
+   * 触发游戏奖励（外部游戏：点击即得）
+   */
+  const triggerGameReward = useCallback(async (gameId: string, gameName: string, gameType: GameType, extraData?: Record<string, any>) => {
+    // 获取用户ID（优先 currentUser，回退到凭证系统的 guest ID / 默认 ID）
+    let userId: string | null = null;
+    let userName: string = '玩家';
+
+    if (currentUser?.userId) {
+      userId = currentUser.userId;
+      userName = currentUser.username || '玩家';
+    } else {
+      // 与 Match3Game 一致的 ID 解析逻辑
+      const voucherGuestId = localStorage.getItem('voucher_guest_id');
+      const userStr = localStorage.getItem('allinone_user');
+      
+      if (voucherGuestId) {
+        userId = voucherGuestId;
+        userName = '访客用户';
+        console.log('[GameCenter] 使用凭证系统 Guest ID:', userId);
+      } else if (userStr) {
+        try {
+          const user = JSON.parse(userStr);
+          userId = user.id || user.userId || user._id;
+          userName = user.username || user.name || '玩家';
+          console.log('[GameCenter] 使用 allinone_user:', { userId, userName });
+        } catch {
+          userId = 'user_001';
+        }
+      } else {
+        userId = 'user_001';
+        console.log('[GameCenter] 使用默认用户ID:', userId);
+      }
+    }
+
+    if (!userId) {
+      console.log('[GameCenter] 无法获取用户ID，跳过奖励发放');
+      return;
+    }
+
+    try {
+      // 查找该游戏的活跃绑定配置
+      const bindings = platformBindingService.getActiveBindingsForGame(gameId);
+      
+      if (bindings.length === 0) {
+        console.log(`[GameCenter] 游戏 ${gameName} 没有配置奖励规则`);
+        showRewardToast(false, `${gameName} 暂未配置凭证奖励规则，请在凭证系统绑定`, 0);
+        return;
+      }
+
+      console.log(`[GameCenter] 为游戏 ${gameName} 触发奖励，找到 ${bindings.length} 个绑定配置`);
+
+      // 依次处理每个绑定配置
+      for (const binding of bindings) {
+        const result = await platformBindingService.distributeSimpleReward(
+          binding.id,
+          userId,
+          userName,
+          {
+            event: 'GAME_CLICK',
+            gameId,
+            gameName,
+            gameType,
+            timestamp: Date.now(),
+            ...extraData,
+          }
+        );
+
+        if (result.success && result.record) {
+          showRewardToast(true, `获得 ${result.record.amount} A币奖励！`, result.record.amount);
+          console.log(`[GameCenter] 奖励发放成功:`, result.record);
+        } else if (result.error) {
+          // 显示所有错误信息给用户（配置错误、奖池余额不足等）
+          showRewardToast(false, result.error, 0);
+          console.log(`[GameCenter] 奖励未发放: ${result.error}`);
+        }
+      }
+    } catch (error) {
+      console.error('[GameCenter] 触发奖励失败:', error);
+    }
+  }, [currentUser]);
+
+  /**
+   * 处理外部游戏跳转（带自动登录和奖励）
+   */
+  const handleExternalGameClick = useCallback(async (game: GameCard) => {
     if (!game.externalUrl) return;
+
+    // 先触发奖励（点击即得）
+    await triggerGameReward(game.id, game.name, GameType.EXTERNAL);
 
     const autoLoginUrl = getAutoLoginUrl(game.externalUrl);
 
     // 打开新窗口
     window.open(autoLoginUrl, '_blank', 'noopener,noreferrer');
-  }, [getAutoLoginUrl]);
+  }, [getAutoLoginUrl, triggerGameReward]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 relative">
+      {/* 奖励提示 Toast */}
+      <AnimatePresence>
+        {rewardToast.show && (
+          <motion.div
+            initial={{ opacity: 0, y: -50, x: '-50%' }}
+            animate={{ opacity: 1, y: 0, x: '-50%' }}
+            exit={{ opacity: 0, y: -50, x: '-50%' }}
+            className={`fixed top-24 left-1/2 z-50 px-6 py-4 rounded-xl shadow-2xl flex items-center gap-3 ${
+              rewardToast.success
+                ? 'bg-gradient-to-r from-green-600 to-emerald-600 text-white'
+                : 'bg-gradient-to-r from-red-600 to-orange-600 text-white'
+            }`}
+          >
+            {rewardToast.success ? (
+              <>
+                <div className="w-10 h-10 rounded-full bg-white/20 flex items-center justify-center">
+                  <Coins className="w-5 h-5" />
+                </div>
+                <div>
+                  <p className="font-bold text-lg">🎉 {rewardToast.message}</p>
+                  {rewardToast.amount && (
+                    <p className="text-white/80 text-sm">已存入您的A币钱包</p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <>
+                <AlertCircle className="w-6 h-6" />
+                <p>{rewardToast.message}</p>
+              </>
+            )}
+            <button
+              onClick={() => setRewardToast(prev => ({ ...prev, show: false }))}
+              className="ml-4 p-1 hover:bg-white/20 rounded-full transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {/* Header */}
       <header className="bg-white/90 dark:bg-slate-900/90 backdrop-blur-md shadow-sm">
         <div className="container mx-auto px-4 md:px-6 py-4">
@@ -167,6 +365,13 @@ export default function GameCenter() {
             </div>
             
             <div className="flex items-center gap-4">
+              <Link
+                to="/publishing-center"
+                className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-purple-600 to-pink-600 rounded-lg shadow-md hover:shadow-lg hover:from-purple-700 hover:to-pink-700 transition-all transform hover:-translate-y-0.5 flex items-center gap-2"
+              >
+                <i className="fa-solid fa-rocket"></i>
+                发布游戏
+              </Link>
               <div className="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <i className="fa-solid fa-coins text-yellow-500"></i>
                 <span>{t(dict, 'gameCenter.header.networkPower')} <span className="font-semibold text-blue-600 dark:text-blue-400">1,234</span></span>
@@ -251,27 +456,7 @@ export default function GameCenter() {
           </motion.div>
         </div>
 
-        {/* Filter Section */}
-        <div className="flex flex-wrap items-center gap-4 mb-8">
-          <span className="text-sm font-medium text-slate-700 dark:text-slate-200">{t(dict, 'gameCenter.filter.label')}</span>
-          <div className="flex gap-2">
-            {['all', 'easy', 'medium', 'hard'].map((difficulty) => (
-              <button
-                key={difficulty}
-                onClick={() => setSelectedDifficulty(difficulty)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  selectedDifficulty === difficulty
-                    ? 'bg-blue-600 text-white shadow-md'
-                    : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700'
-                }`}
-              >
-                {difficulty === 'all' ? t(dict, 'gameCenter.filter.all') : 
-                 difficulty === 'easy' ? t(dict, 'gameCenter.filter.easy') :
-                 difficulty === 'medium' ? t(dict, 'gameCenter.filter.medium') : t(dict, 'gameCenter.filter.hard')}
-              </button>
-            ))}
-          </div>
-        </div>
+
 
         {/* Games Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -289,18 +474,24 @@ export default function GameCenter() {
                     <i className={game.icon}></i>
                   </div>
                   <div className="flex flex-col gap-2">
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${difficultyColors[game.difficulty]}`}>
-                      {game.difficulty === 'easy' ? t(dict, 'gameCenter.difficulty.easy') : 
-                       game.difficulty === 'medium' ? t(dict, 'gameCenter.difficulty.medium') : t(dict, 'gameCenter.difficulty.hard')}
-                    </span>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[game.status]}`}>
                       {t(dict, `gameCenter.status.${game.status === 'coming-soon' ? 'comingSoon' : game.status}`)}
                     </span>
                   </div>
                 </div>
                 
-                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">{t(dict, `gameCenter.games.${game.id}.name`)}</h3>
-                <p className="text-slate-600 dark:text-slate-300 text-sm mb-4 line-clamp-2">{t(dict, `gameCenter.games.${game.id}.desc`)}</p>
+                <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
+                  {game.isPublished ? game.name : t(dict, `gameCenter.games.${game.id}.name`)}
+                </h3>
+                <p className="text-slate-600 dark:text-slate-300 text-sm mb-4 line-clamp-2">
+                  {game.isPublished ? game.description : t(dict, `gameCenter.games.${game.id}.desc`)}
+                </p>
+                {game.isPublished && (
+                  <span className="inline-block px-2 py-1 mb-2 text-xs font-medium text-purple-600 bg-purple-100 dark:bg-purple-900/30 dark:text-purple-400 rounded-full">
+                    <i className="fa-solid fa-rocket mr-1"></i>
+                    已发布游戏
+                  </span>
+                )}
                 
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
@@ -321,21 +512,39 @@ export default function GameCenter() {
                 
                 <div className="flex gap-2">
                   {game.status === 'available' ? (
-                    game.externalUrl ? (
-                      <button
-                        onClick={() => handleExternalGameClick(game)}
-                        className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
-                      >
-                        {t(dict, 'gameCenter.buttons.play')} ▶
-                      </button>
-                    ) : (
-                      <Link
-                        to={`/game/${game.id}`}
-                        className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
-                      >
-                        {t(dict, 'gameCenter.buttons.start')}
-                      </Link>
-                    )
+                    <>
+                      {game.isPublished ? (
+                        <>
+                          <Link
+                            to={`/game/${game.id}`}
+                            className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+                          >
+                            游玩 ▶
+                          </Link>
+                          <Link
+                            to={`/game-store/${game.id}`}
+                            className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                            title="游戏商店"
+                          >
+                            <i className="fa-solid fa-store"></i>
+                          </Link>
+                        </>
+                      ) : game.externalUrl ? (
+                        <button
+                          onClick={() => handleExternalGameClick(game)}
+                          className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+                        >
+                          {t(dict, 'gameCenter.buttons.start')}
+                        </button>
+                      ) : (
+                        <Link
+                          to={`/game/${game.id}`}
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-center py-2 px-4 rounded-lg font-medium transition-colors"
+                        >
+                          {t(dict, 'gameCenter.buttons.start')}
+                        </Link>
+                      )}
+                    </>
                   ) : (
                     <button
                       disabled

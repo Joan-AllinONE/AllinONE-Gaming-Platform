@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { cn } from '@/lib/utils';
 import { useLanguage } from '@/contexts/LanguageContext';
+import GameRecommendationModal from '@/components/GameRecommendationModal';
 
 export default function Home() {
   const [isScrolled, setIsScrolled] = useState(false);
@@ -19,6 +20,7 @@ export default function Home() {
         marketplace: '交易市场',
         fundPool: '资金池',
         personalCenter: '个人中心',
+        skillWizard: 'Skill 向导',
       },
       auth: { login: '登录', register: '立即注册' },
       hero: {
@@ -115,6 +117,7 @@ export default function Home() {
         marketplace: 'Marketplace',
         fundPool: 'Fund Pool',
         personalCenter: 'Personal Center',
+        skillWizard: 'Skill Wizard',
       },
       auth: { login: 'Log In', register: 'Sign Up' },
       hero: {
@@ -225,6 +228,8 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 text-slate-900 dark:text-slate-50">
+      {/* Game Recommendation Modal */}
+      <GameRecommendationModal />
       {/* Navigation Bar */}
       <header className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-300",
@@ -242,12 +247,15 @@ export default function Home() {
           
             <nav className="hidden md:flex items-center gap-8">
             <Link to="/game-center" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.gameCenter')}</Link>
+            <Link to="/publishing-center" className="text-sm font-medium text-purple-600 dark:text-purple-400 hover:text-purple-700 dark:hover:text-purple-300 transition-colors">发布游戏</Link>
+            <Link to="/skill-wizard" className="text-sm font-medium text-indigo-600 dark:text-indigo-400 hover:text-indigo-700 dark:hover:text-indigo-300 transition-colors">{t('nav.skillWizard')}</Link>
             <Link to="/computing-dashboard" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.computingDashboard')}</Link>
             <Link to="/blog-center" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.blogCenter')}</Link>
             <Link to="/official-store" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.officialStore')}</Link>
             <Link to="/game-store" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.gameStore')}</Link>
             <Link to="/marketplace" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.marketplace')}</Link>
             <Link to="/fund-pool" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.fundPool')}</Link>
+            <Link to="/voucher-system" className="text-sm font-medium text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition-colors">A币凭证</Link>
             <Link to="/computing-power" className="text-sm font-medium hover:text-blue-600 dark:hover:text-blue-400 transition-colors">{t('nav.personalCenter')}</Link>
           </nav>
           

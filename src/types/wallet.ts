@@ -8,6 +8,15 @@ export interface WalletBalance {
   computingPower: number; // 算力余额
   aCoins: number;         // A币余额（平台币）
   oCoins: number;         // O币余额（证券类型代币）
+  vouchers: number;       // 凭证余额（A币凭证总价值）- 向后兼容
+  voucherCount: number;   // 凭证数量 - 向后兼容
+  
+  // 双轨凭证系统字段
+  instantVouchers: number;       // 即时发放型凭证价值
+  instantVoucherCount: number;   // 即时发放型凭证数量
+  algorithmVouchers: number;     // 计算分配型凭证价值（A币日结/分红）
+  algorithmVoucherCount: number; // 计算分配型凭证数量
+  
   totalValue: number;     // 总价值（以现金计算）
   lastUpdated: Date;      // 最后更新时间
 }
@@ -44,6 +53,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
   weeklyIncome: {
     cash: number;
@@ -52,6 +62,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
   monthlyIncome: {
     cash: number;
@@ -60,6 +71,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
 
   // 支出
@@ -70,6 +82,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
   weeklyExpense: {
     cash: number;
@@ -78,6 +91,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
   monthlyExpense: {
     cash: number;
@@ -86,6 +100,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
 
   // 累计
@@ -96,6 +111,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
   totalExpense: {
     cash: number;
@@ -104,6 +120,7 @@ export interface WalletStats {
     computingPower: number;
     aCoins: number;
     oCoins: number;
+    vouchers: number;
   };
 
   totalTransactions: number;

@@ -16,8 +16,6 @@ import ComputingPowerPageSimple from "@/pages/ComputingPowerPageSimple";
 import TestAccounts from "@/pages/TestAccounts";
 import FundPool from "@/pages/FundPool";
 import FundPoolDemo from "@/pages/FundPoolDemo";
-import ACoinSettlementTest from "@/pages/ACoinSettlementTest";
-import ACoinCalculationTest from "@/pages/ACoinCalculationTest";
 import BlogCenter from "@/pages/BlogCenter";
 import BlogDetail from "@/pages/BlogDetail";
 import BlogEditor from "@/pages/BlogEditor";
@@ -36,6 +34,11 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NewDayIntegrationInit from '@/components/NewDayIntegrationInit';
 import NewDayIntegrationTest from '@/pages/NewDayIntegrationTest';
+import PublishingCenter from '@/pages/PublishingCenter';
+import SkillWizardPage from '@/pages/SkillWizardPage';
+import GamePlay from '@/pages/GamePlay';
+import GameStore from '@/pages/GameStore';
+import VoucherSystemPage from '@/pages/VoucherSystemPage';
 
 export default function App() {
   return (
@@ -66,8 +69,6 @@ export default function App() {
           <Route path="/fund-pool" element={<FundPool />} />
           <Route path="/fund-pool-demo" element={<FundPoolDemo />} />
           <Route path="/test-accounts" element={<TestAccounts />} />
-          <Route path="/acoin-settlement-test" element={<ACoinSettlementTest />} />
-          <Route path="/acoin-calculation-test" element={<ACoinCalculationTest />} />
           <Route path="/blog-center" element={<BlogCenter />} />
           <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/blog/create" element={<BlogEditor />} />
@@ -79,6 +80,11 @@ export default function App() {
           <Route path="/open-economy" element={<OpenEconomy />} />
           <Route path="/trading-system" element={<TradingSystem />} />
           <Route path="/newday-integration-test" element={<NewDayIntegrationTest />} />
+          <Route path="/publishing-center" element={<PublishingCenter />} />
+          <Route path="/skill-wizard" element={<SkillWizardPage />} />
+          <Route path="/game/:gameId" element={<GamePlay />} />
+          <Route path="/game-store/:gameId" element={<GameStore />} />
+          <Route path="/voucher-system" element={<VoucherSystemPage />} />
             </Routes>
             </PlatformManagementProvider>
           </BlogProvider>

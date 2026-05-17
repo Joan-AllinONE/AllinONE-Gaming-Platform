@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { databaseService } from '@/services/database';
 import { useUserData } from '@/contexts/UserDataContext';
 import { walletService } from '@/services/walletService';
+import { platformBindingService } from '@/voucher-system';
 import GameRules from '@/components/GameRules';
 import GameEffects from '@/components/GameEffects';
 
@@ -446,6 +447,113 @@ export default function Match3Game() {
       
       // 触发钱包更新事件，确保个人中心实时更新
       window.dispatchEvent(new CustomEvent('wallet-updated'));
+      
+      // 🎫 发放凭证系统奖励（A币凭证）
+      console.log('🎫 开始发放凭证奖励流程...');
+      try {
+        // 获取与凭证系统一致的用户ID
+        // 1. 首先尝试从 localStorage 获取凭证系统保存的 guest ID
+        // 2. 然后尝试从 allinone_user 获取
+        // 3. 最后使用 databaseService 的默认用户ID
+        let userId: string | null = null;
+        let username: string = '玩家';
+        
+        const voucherGuestId = localStorage.getItem('voucher_guest_id');
+        const userStr = localStorage.getItem('allinone_user');
+        
+        if (voucherGuestId) {
+          // 优先使用凭证系统的 guest ID（确保与凭证创建时一致）
+          userId = voucherGuestId;
+          username = '访客用户';
+          console.log('🎫 使用凭证系统 Guest ID:', userId);
+        } else if (userStr) {
+          // 使用 allinone_user
+          const user = JSON.parse(userStr);
+          userId = user.id || user.userId || user._id;
+          username = user.username || user.name || '玩家';
+          console.log('🎫 使用 allinone_user:', { userId, username });
+        } else {
+          // 使用默认用户ID
+          userId = 'user_001';
+          username = '玩家';
+          console.log('🎫 使用默认用户ID:', userId);
+        }
+        
+        if (userId) {
+          // 获取消消乐游戏的活跃绑定配置
+          console.log('🎫 正在查询消消乐游戏的绑定配置...');
+          const bindings = platformBindingService.getActiveBindingsForGame('match3');
+          console.log('🎫 消消乐游戏凭证绑定配置:', bindings);
+          console.log('🎫 当前用户ID:', userId, '用户名:', username);
+            
+            if (bindings.length > 0) {
+              let totalVoucherReward = 0;
+              let successCount = 0;
+              let failCount = 0;
+              
+              for (const binding of bindings) {
+                try {
+                  console.log(`尝试发放奖励 - 绑定ID: ${binding.id}, 规则: ${binding.ruleName}, 奖池来源: ${binding.poolSource || 'platform'}`);
+                  
+                  const result = await platformBindingService.distributeSimpleReward(
+                    binding.id,
+                    userId,
+                    username,
+                    {
+                      event: 'GAME_COMPLETE',
+                      gameId: 'match3',
+                      score: gameStats.score,
+                      duration: gameDuration,
+                    }
+                  );
+                  
+                  console.log('发放结果:', result);
+                  
+                  if (result.success && result.record) {
+                    const rewardAmount = result.record.amount;
+                    totalVoucherReward += rewardAmount;
+                    successCount++;
+                    console.log(`✅ 绑定配置 ${binding.id} 发放成功:`, rewardAmount, 'A币');
+                  } else {
+                    failCount++;
+                    console.warn(`❌ 绑定配置 ${binding.id} 发放失败:`, result.error || '未知错误');
+                  }
+                } catch (bindingError) {
+                  failCount++;
+                  console.warn(`❌ 绑定配置 ${binding.id} 发放异常:`, bindingError);
+                }
+              }
+              
+              if (totalVoucherReward > 0) {
+                toast.success(`🎉 获得 ${totalVoucherReward} A币凭证奖励！`, {
+                  duration: 5000,
+                  icon: '🎫'
+                });
+                console.log(`凭证奖励发放完成 - 成功:${successCount} 失败:${failCount} 总计:${totalVoucherReward} A币`);
+                
+                // 触发钱包更新事件，确保钱包余额同步刷新
+                window.dispatchEvent(new CustomEvent('wallet-updated'));
+              } else {
+                console.log(`没有成功发放凭证奖励 - 尝试:${bindings.length} 成功:${successCount} 失败:${failCount}`);
+                if (failCount > 0) {
+                  toast.info('本次游戏未获得A币奖励，可能是奖池已耗尽或达到领取限制', {
+                    duration: 3000,
+                    icon: '💡'
+                  });
+                }
+              }
+            } else {
+              console.log('🎫 消消乐游戏没有激活的凭证绑定配置');
+              console.log('🎫 提示：请在凭证系统的"应用到平台"标签页创建绑定');
+            }
+          } else {
+            console.log('🎫 未获取到用户ID，无法发放凭证奖励');
+          }
+      } catch (voucherError) {
+        console.error('🎫 凭证奖励发放失败:', voucherError);
+        console.error('🎫 错误详情:', voucherError instanceof Error ? voucherError.stack : '未知错误');
+        // 不影响主流程，继续显示游戏结果
+      }
       
       console.log('游戏记录已保存并更新用户数据:', {
         score: gameStats.score,

@@ -13,7 +13,8 @@ export enum PaymentMethod {
   REAL_MONEY = 'real_money',          // 真实货币
   GAME_COINS = 'game_coins',          // 游戏币
   COMPUTING_POWER = 'computing_power',  // 算力
-  A_COINS = 'a_coins'                 // A币
+  A_COINS = 'a_coins',                // A币（旧系统，保留向后兼容）
+  VOUCHER = 'voucher'                 // 凭证A币（testA币，新系统）
 }
 
 export interface StoreCategory {
@@ -99,6 +100,7 @@ export interface UserPurchaseHistory {
     gameCoins: number;
     computingPower: number;
     aCoins: number;
+    vouchers: number;
   };
   recentPurchases: PurchaseRecord[];
   ownedItems: OfficialStoreItem[];

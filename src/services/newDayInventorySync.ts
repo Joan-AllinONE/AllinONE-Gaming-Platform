@@ -8,7 +8,8 @@ import { newDayService } from './newDayService';
 import { newDayApiService } from './newDayApiService';
 import { allinoneSyncService, SyncItem } from './allinoneSyncService';
 import { crossPlatformAuthService } from './crossPlatformAuthService';
-import { inventoryApiService, InventoryItem } from './inventoryApiService';
+import { inventoryApiService } from './inventoryApiService';
+import { InventoryItemLegacy as InventoryItem } from '@/skills/compat/inventoryCompat';
 
 interface CrossGameInventoryItem {
   id: string;

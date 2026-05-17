@@ -1,0 +1,388 @@
+/**
+ * AllinONE 标准游戏配置文件 Schema
+ * 
+ * 文件名: allinone.config.json
+ * 位置: 项目根目录
+ */
+
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AllinONE Game Configuration",
+  "description": "AllinONE平台标准游戏配置文件",
+  "type": "object",
+  "required": ["game", "platform", "skills"],
+  "properties": {
+    "game": {
+      "type": "object",
+      "required": ["id", "name", "version"],
+      "description": "游戏基本信息",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "游戏唯一标识",
+          "pattern": "^[a-z0-9_-]+$",
+          "minLength": 3,
+          "maxLength": 50
+        },
+        "name": {
+          "type": "string",
+          "description": "游戏名称",
+          "minLength": 1,
+          "maxLength": 100
+        },
+        "version": {
+          "type": "string",
+          "description": "游戏版本",
+          "pattern": "^\\d+\\.\\d+\\.\\d+$"
+        },
+        "description": {
+          "type": "string",
+          "description": "游戏描述",
+          "maxLength": 500
+        },
+        "genre": {
+          "type": "string",
+          "description": "游戏类型",
+          "enum": [
+            "rpg",
+            "action",
+            "adventure",
+            "puzzle",
+            "strategy",
+            "simulation",
+            "sports",
+            "racing",
+            "shooter",
+            "platformer",
+            "casual"
+          ]
+        },
+        "framework": {
+          "type": "string",
+          "description": "游戏框架",
+          "enum": [
+            "vanilla-js",
+            "typescript",
+            "phaser",
+            "pixi",
+            "three-js",
+            "babylon",
+            "cocos-creator",
+            "unity-webgl",
+            "godot",
+            "construct",
+            "rpg-maker",
+            "react",
+            "vue"
+          ]
+        },
+        "author": {
+          "type": "string",
+          "description": "开发者/工作室名称"
+        },
+        "website": {
+          "type": "string",
+          "description": "官方网站URL",
+          "format": "uri"
+        },
+        "tags": {
+          "type": "array",
+          "description": "游戏标签",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        }
+      }
+    },
+    "platform": {
+      "type": "object",
+      "required": ["type", "entryPoint"],
+      "description": "平台配置",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "游戏类型",
+          "enum": ["standard", "universal"]
+        },
+        "entryPoint": {
+          "type": "string",
+          "description": "游戏入口文件路径",
+          "examples": ["src/main.ts", "src/main.js", "index.html"]
+        },
+        "fullscreen": {
+          "type": "boolean",
+          "description": "是否支持全屏",
+          "default": true
+        },
+        "mobileOptimized": {
+          "type": "boolean",
+          "description": "是否针对移动设备优化",
+          "default": true
+        },
+        "offlineSupport": {
+          "type": "boolean",
+          "description": "是否支持离线游玩",
+          "default": false
+        },
+        "orientation": {
+          "type": "string",
+          "description": "屏幕方向",
+          "enum": ["portrait", "landscape", "auto"],
+          "default": "auto"
+        },
+        "resolution": {
+          "type": "object",
+          "description": "推荐分辨率",
+          "properties": {
+            "width": {
+              "type": "number",
+              "minimum": 320
+            },
+            "height": {
+              "type": "number",
+              "minimum": 240
+            }
+          }
+        },
+        "minPlatformVersion": {
+          "type": "string",
+          "description": "最低平台版本要求"
+        }
+      }
+    },
+    "skills": {
+      "type": "object",
+      "description": "启用的平台Skills",
+      "properties": {
+        "auth": {
+          "type": "boolean",
+          "description": "用户认证系统",
+          "default": true
+        },
+        "wallet": {
+          "type": "boolean",
+          "description": "钱包系统",
+          "default": true
+        },
+        "inventory": {
+          "type": "boolean",
+          "description": "道具库存系统",
+          "default": false
+        },
+        "store": {
+          "type": "boolean",
+          "description": "游戏商店",
+          "default": false
+        },
+        "leaderboard": {
+          "type": "boolean",
+          "description": "排行榜系统",
+          "default": false
+        },
+        "achievements": {
+          "type": "boolean",
+          "description": "成就系统",
+          "default": false
+        },
+        "multiplayer": {
+          "type": "boolean",
+          "description": "多人游戏",
+          "default": false
+        },
+        "analytics": {
+          "type": "boolean",
+          "description": "数据分析",
+          "default": false
+        },
+        "cloudSave": {
+          "type": "boolean",
+          "description": "云存档",
+          "default": false
+        },
+        "social": {
+          "type": "boolean",
+          "description": "社交分享",
+          "default": false
+        },
+        "notification": {
+          "type": "boolean",
+          "description": "推送通知",
+          "default": false
+        },
+        "localization": {
+          "type": "boolean",
+          "description": "多语言支持",
+          "default": false
+        }
+      }
+    },
+    "features": {
+      "type": "object",
+      "description": "功能特性配置",
+      "properties": {
+        "cloudSave": {
+          "type": "boolean",
+          "description": "启用云存档",
+          "default": false
+        },
+        "autoSync": {
+          "type": "boolean",
+          "description": "自动同步数据",
+          "default": true
+        },
+        "socialShare": {
+          "type": "boolean",
+          "description": "社交分享功能",
+          "default": false
+        },
+        "inGamePurchase": {
+          "type": "boolean",
+          "description": "游戏内购买",
+          "default": false
+        },
+        "adSupported": {
+          "type": "boolean",
+          "description": "是否包含广告",
+          "default": false
+        },
+        "tutorial": {
+          "type": "boolean",
+          "description": "是否包含新手引导",
+          "default": false
+        }
+      }
+    },
+    "display": {
+      "type": "object",
+      "description": "展示信息",
+      "properties": {
+        "icon": {
+          "type": "string",
+          "description": "游戏图标路径",
+          "examples": ["public/icon.png", "assets/icon.jpg"]
+        },
+        "cover": {
+          "type": "string",
+          "description": "游戏封面路径"
+        },
+        "screenshots": {
+          "type": "array",
+          "description": "游戏截图路径列表",
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 10
+        },
+        "trailer": {
+          "type": "string",
+          "description": "预告片视频URL"
+        },
+        "primaryColor": {
+          "type": "string",
+          "description": "主题色",
+          "pattern": "^#[0-9A-Fa-f]{6}$",
+          "default": "#3B82F6"
+        },
+        "secondaryColor": {
+          "type": "string",
+          "description": "次要颜色",
+          "pattern": "^#[0-9A-Fa-f]{6}$"
+        },
+        "description": {
+          "type": "string",
+          "description": "游戏详细描述",
+          "maxLength": 2000
+        },
+        "shortDescription": {
+          "type": "string",
+          "description": "简短描述（100字以内）",
+          "maxLength": 100
+        },
+        "instructions": {
+          "type": "string",
+          "description": "游戏说明/操作指南"
+        },
+        "changelog": {
+          "type": "string",
+          "description": "更新日志"
+        }
+      }
+    },
+    "monetization": {
+      "type": "object",
+      "description": "商业化配置",
+      "properties": {
+        "type": {
+          "type": "string",
+          "description": "商业模式",
+          "enum": ["free", "paid", "freemium", "subscription"],
+          "default": "free"
+        },
+        "price": {
+          "type": "number",
+          "description": "价格（人民币）",
+          "minimum": 0
+        },
+        "currency": {
+          "type": "string",
+          "description": "货币类型",
+          "default": "CNY"
+        },
+        "trialDays": {
+          "type": "number",
+          "description": "试用期天数",
+          "minimum": 0
+        },
+        "subscriptionPeriod": {
+          "type": "string",
+          "description": "订阅周期",
+          "enum": ["monthly", "quarterly", "yearly"]
+        }
+      }
+    },
+    "contentRating": {
+      "type": "object",
+      "description": "内容分级",
+      "properties": {
+        "age": {
+          "type": "string",
+          "description": "适合年龄",
+          "enum": ["3+", "7+", "12+", "16+", "18+"],
+          "default": "7+"
+        },
+        "violence": {
+          "type": "string",
+          "description": "暴力内容级别",
+          "enum": ["none", "mild", "moderate", "intense"],
+          "default": "none"
+        },
+        "language": {
+          "type": "string",
+          "description": "语言内容级别",
+          "enum": ["none", "mild", "moderate", "strong"],
+          "default": "none"
+        }
+      }
+    },
+    "localization": {
+      "type": "object",
+      "description": "多语言配置",
+      "properties": {
+        "defaultLanguage": {
+          "type": "string",
+          "description": "默认语言",
+          "default": "zh-CN"
+        },
+        "supportedLanguages": {
+          "type": "array",
+          "description": "支持的语言列表",
+          "items": {
+            "type": "string"
+          },
+          "default": ["zh-CN"]
+        }
+      }
+    }
+  }
+}

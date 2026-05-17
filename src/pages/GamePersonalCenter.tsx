@@ -10,12 +10,10 @@ import EconomicSystemMonitor from '../components/EconomicSystemMonitor';
 import CommissionDisplay from '../components/CommissionDisplay';
 import BlogManager from '../components/BlogManager';
 import CrossGameInventory from '../components/CrossGameInventory';
-import { aCoinService } from '@/services/aCoinService';
 import oCoinService from '@/services/oCoinService';
-import { fundPoolService } from '@/services/fundPoolService';
-import { computingEconomicService } from '@/services/computingEconomicService';
 import { walletService } from '@/services/walletService';
 import platformConfigService from '@/services/platformConfigService';
+import { redeemCodeService } from '@/services/redeemCodeService';
 import { 
   OCoinMarketData, 
   OCoinUserBalance, 
@@ -24,6 +22,9 @@ import {
 } from '@/types/oCoin';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
+import { voucherService } from '@/voucher-system/services/VoucherService';
+import { platformBindingService } from '@/voucher-system/services/PlatformBindingService';
+import { VoucherSourceType } from '@/voucher-system/types';
 
 // 获取物品图标的工具函数
 function getItemIcon(category: string): string {
@@ -55,7 +56,7 @@ const GamePersonalCenter: React.FC = () => {
   const [exchangeFrom, setExchangeFrom] = useState('cash');
   const [exchangeTo, setExchangeTo] = useState('gameCoin');
 
-  const [selectedWalletCurrency, setSelectedWalletCurrency] = useState<'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'aCoins' | 'oCoins' | null>(null);
+  const [selectedWalletCurrency, setSelectedWalletCurrency] = useState<'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'oCoins' | 'vouchers' | null>(null);
   const [showGameCoinsDetail, setShowGameCoinsDetail] = useState(false); // 游戏币明细展开状态
   const [gameCoinsSummary, setGameCoinsSummary] = useState<{
     total: number;
@@ -68,37 +69,10 @@ const GamePersonalCenter: React.FC = () => {
     onlineUsers: 0,
     totalComputePower: 0,
     dailyTransactions: 0,
-    aCoinCirculatingSupply: 0,
-    aCoinHolders: 0,
     oCoinPrice: 0,
     oCoinMarketCap: 0,
-    aCoinTotalSupply: 0,
     oCoinCirculatingSupply: 0,
   });
-  
-  // A币贡献度分析数据
-  const [aCoinContribution, setACoinContribution] = useState({
-    gameCoinsEarned: 0,
-    computingPowerContribution: 0,
-    transactionActivity: 0,
-    gameCoinsWeight: 0,
-    computingPowerWeight: 0,
-    transactionWeight: 0,
-    totalACoinEarned: 0,
-    lastDistribution: new Date()
-  });
-  
-  // A币每日结算记录
-  const [aCoinDailySettlements, setACoinDailySettlements] = useState<Array<{
-    timestamp: string;
-    amount: number;
-    contributionScore: number;
-    totalDistributed: number;
-    recipientsCount: number;
-  }>>([]);
-  
-  // 是否显示A币结算详情
-  const [showACoinSettlementDetails, setShowACoinSettlementDetails] = useState(false);
   
   // O币市场数据
   const [oCoinMarketData, setOCoinMarketData] = useState<OCoinMarketData>({
@@ -189,52 +163,19 @@ const GamePersonalCenter: React.FC = () => {
     };
   }, []);
   
-  // 加载A币每日结算记录
-  const loadACoinDailySettlements = async () => {
-    try {
-      // 从计算经济服务获取用户的每日结算记录
-      const settlements = await computingEconomicService.getUserDailySettlements();
-      
-      // 处理结算记录，添加总发放量和接收者数量
-      const processedSettlements = settlements.map(settlement => ({
-        timestamp: (settlement as any).date || (settlement as any).timestamp, // 兼容date和timestamp字段
-        amount: settlement.amount,
-        contributionScore: settlement.contributionScore,
-        // 如果没有recipientsCount，则添加一个模拟值
-        recipientsCount: settlement.recipientsCount || Math.floor(Math.random() * 100) + 50,
-        // 如果没有totalDistributed，则添加一个模拟值（通常是amount的10-20倍）
-        totalDistributed: settlement.totalDistributed || settlement.amount * (Math.random() * 10 + 10)
-      }));
-      
-      setACoinDailySettlements(processedSettlements);
-      
-      // 移除页面触发的自动结算，避免重复结算
-      // 自动结算应由后台或统一入口触发
-    } catch (error) {
-      console.error('获取A币每日结算记录失败:', error);
-      // 如果API调用失败，使用模拟数据
-      const mockSettlements = Array.from({ length: 7 }).map((_, index) => {
-        const date = new Date();
-        date.setDate(date.getDate() - index);
-        
-        const amount = Math.random() * 50 + 10; // 10-60 A币
-        const contributionScore = Math.random() * 100 + 50; // 50-150 贡献分数
-        const totalDistributed = amount * (Math.random() * 10 + 10); // 总发放量是个人获得的10-20倍
-        const recipientsCount = Math.floor(Math.random() * 100) + 50; // 50-150人
-        
-        return {
-          timestamp: date.toISOString(),
-          amount,
-          contributionScore,
-          totalDistributed,
-          recipientsCount
-        };
-      });
-      
-      setACoinDailySettlements(mockSettlements);
-    }
-  };
+  // 🔥 监听钱包更新事件（包括兑换码购买后）
+  useEffect(() => {
+    const handleWalletUpdate = () => {
+      console.log('[个人中心] 收到钱包更新事件，刷新用户数据...');
+      // 刷新用户数据（包括兑换码购买记录）
+      loadUserData();
+    };
+    
+    window.addEventListener('wallet-updated', handleWalletUpdate);
+    return () => window.removeEventListener('wallet-updated', handleWalletUpdate);
+  }, []);
   
+
   // 加载O币市场数据
   const loadOCoinMarketData = async () => {
     try {
@@ -479,7 +420,6 @@ const GamePersonalCenter: React.FC = () => {
   useEffect(() => {
     loadUserData();
     loadGlobalStats();
-    loadACoinDailySettlements(); // 加载A币每日结算记录
     
     // 每30秒更新全网数据
     const interval = setInterval(loadGlobalStats, 30000);
@@ -493,10 +433,9 @@ const GamePersonalCenter: React.FC = () => {
     };
   }, []);
   
-  // 在钱包数据加载完成后加载A币贡献度分析数据和游戏币汇总
+  // 在钱包数据加载完成后加载游戏币汇总
   useEffect(() => {
     if (wallet && !walletLoading) {
-      loadACoinContributionData();
       loadGameCoinsSummary();
     }
   }, [wallet, walletLoading]);
@@ -521,45 +460,6 @@ const GamePersonalCenter: React.FC = () => {
       fetchUserPosts();
     }
   }, [activeTab, fetchUserPosts]);
-
-  // 加载A币贡献度分析数据
-  const loadACoinContributionData = async () => {
-    try {
-      // 从A币服务获取贡献度数据
-      const contributionData = await aCoinService.getUserContributionData();
-      
-      // 如果获取到数据，则更新状态
-      if (contributionData) {
-        setACoinContribution(contributionData);
-      } else {
-        console.error('无法获取A币贡献度数据');
-        // 设置默认值，但不使用随机数据
-        setACoinContribution({
-          gameCoinsEarned: wallet?.gameCoins || 0,
-          computingPowerContribution: wallet?.computingPower || 0,
-          transactionActivity: 0,
-          gameCoinsWeight: 0.5, // 50%
-          computingPowerWeight: 0.3, // 30%
-          transactionWeight: 0.2, // 20%
-          totalACoinEarned: wallet?.aCoins || 0,
-          lastDistribution: new Date()
-        });
-      }
-    } catch (error) {
-      console.error('获取A币贡献度数据失败:', error);
-      // 使用钱包中的真实数据作为备选，而不是随机数据
-      setACoinContribution({
-        gameCoinsEarned: wallet?.gameCoins || 0,
-        computingPowerContribution: wallet?.computingPower || 0,
-        transactionActivity: 0,
-        gameCoinsWeight: 0.5, // 50%
-        computingPowerWeight: 0.3, // 30%
-        transactionWeight: 0.2, // 20%
-        totalACoinEarned: wallet?.aCoins || 0,
-        lastDistribution: new Date()
-      });
-    }
-  };
 
   const loadUserData = async () => {
     try {
@@ -591,7 +491,38 @@ const GamePersonalCenter: React.FC = () => {
           price: tx.price,
           timestamp: tx.timestamp
         }))
-      ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
+      ];
+      
+      // 获取兑换码购买记录并合并
+      try {
+        const userId = 'current-user'; // 实际应从认证系统获取
+        const redeemPurchases = redeemCodeService.getPurchases(userId);
+        
+        // 将兑换码购买记录转换为统一格式
+        const redeemTransactions = redeemPurchases.map(purchase => {
+          // 获取道具名称（通过itemId查找）
+          const item = redeemCodeService.getHostedItem(purchase.itemId);
+          return {
+            id: purchase.id,
+            itemName: item?.name || purchase.itemId,
+            type: 'buy' as const,
+            price: purchase.finalPrice,
+            totalAmount: purchase.finalPrice,
+            timestamp: new Date(purchase.paidAt),
+            isRedeemCode: true, // 标记为兑换码购买
+            codes: purchase.codes, // 保存兑换码信息
+            gameId: purchase.gameId,
+          };
+        });
+        
+        // 合并到交易记录中
+        allTransactions.push(...redeemTransactions);
+      } catch (redeemError) {
+        console.error('加载兑换码购买记录失败:', redeemError);
+      }
+      
+      // 按时间排序
+      allTransactions.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
       
       setUserTransactions(allTransactions);
       await refreshWalletData();
@@ -603,7 +534,7 @@ const GamePersonalCenter: React.FC = () => {
 
 
   // 处理钱包货币点击事件
-  const handleWalletCurrencyClick = async (currency: 'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'aCoins' | 'oCoins') => {
+  const handleWalletCurrencyClick = async (currency: 'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'oCoins' | 'vouchers') => {
     // 特殊处理游戏币点击 - 展开/收起明细
     if (currency === 'gameCoin') {
       if (showGameCoinsDetail) {
@@ -623,6 +554,13 @@ const GamePersonalCenter: React.FC = () => {
       setWalletTransactions([]);
       return;
     }
+    
+    // 处理其他货币类型
+    await handleOtherCurrencyClick(currency);
+  };
+  
+  // 处理非游戏币的其他货币点击
+  const handleOtherCurrencyClick = async (currency: 'cash' | 'newDayGameCoin' | 'computingPower' | 'oCoins' | 'vouchers') => {
 
     try {
       // 获取所有交易记录
@@ -639,67 +577,63 @@ const GamePersonalCenter: React.FC = () => {
             return currencyStr === 'cash' || currencyStr === 'cny';
           });
           break;
-        case 'gameCoin':
-          filteredTransactions = allTransactions.filter(
-            tx => tx.currency === 'gameCoins'
-          );
-          break;
         case 'computingPower':
           // 修复算力交易记录过滤逻辑，确保只显示真正的算力交易记录
           filteredTransactions = allTransactions.filter(tx => tx.currency === 'computingPower');
           break;
-        case 'aCoins':
-          // 特殊处理A币交易记录
+        case 'vouchers': {
+          // 从凭证系统获取真实交易记录（替代模拟数据）
           try {
-            // 首先尝试从钱包服务获取A币交易记录
-            const aCoinTransactions = await walletService.getACoinTransactions(20);
-            if (aCoinTransactions && aCoinTransactions.length > 0) {
-              filteredTransactions = aCoinTransactions;
-            } else {
-              // 如果没有专门的A币交易记录，从所有交易记录中过滤
-              const aCoinFromAllTransactions = allTransactions.filter(tx => 
-                (tx.currency === 'aCoins' as any) || 
-                tx.description?.includes('A币') || 
-                // 使用正确的交易类别
-                (tx.category && ['game_reward', 'commission', 'acoin_distribution'].includes(tx.category) && 
-                 (tx.description?.includes('A币') || (tx.currency as any) === 'aCoins'))
-              );
-              
-              if (aCoinFromAllTransactions.length > 0) {
-                filteredTransactions = aCoinFromAllTransactions;
-              } else {
-                // 如果仍然没有记录，尝试从资金池获取A币发放记录
-                const fundPoolData = await fundPoolService.getPublicFundPoolData();
-                const aCoinTransactions = fundPoolData.recentTransactions.filter(
-                  tx => tx.currency === 'aCoins'
-                );
-                
-                if (aCoinTransactions.length > 0) {
-                  // 转换为钱包交易记录格式
-                  filteredTransactions = aCoinTransactions.map(tx => ({
-                    id: tx.id,
-                    type: tx.type === 'income' ? 'income' : 'expense',
-                    category: 'acoin_distribution',
-                    amount: tx.amount,
-                    currency: 'aCoins',
-                    description: tx.description || 'A币发放',
-                    timestamp: tx.timestamp
-                  }));
-                } else {
-                  // 如果仍然没有记录，生成示例数据
-                  filteredTransactions = generateSampleTransactions('aCoins');
-                }
-              }
-            }
+            const userId = localStorage.getItem('voucher_guest_id') || 'anonymous';
+            const userVouchers = voucherService.getUserVouchers(userId);
+            const rewardRecords = platformBindingService.getUserRewardRecords(userId);
+            
+            // 1. 从用户持有的凭证生成收入记录
+            const voucherTransactions = userVouchers.map(v => ({
+              id: v.id,
+              type: 'income' as const,
+              amount: v.denomination,
+              description: v.metadata?.name 
+                ? `[${v.sourceType === VoucherSourceType.ALGORITHM ? '计算型' : '即时型'}] ${v.metadata.name}`
+                : `[${v.sourceType === VoucherSourceType.ALGORITHM ? '计算型' : '即时型'}] 凭证收入`,
+              timestamp: new Date(v.createdAt),
+              currency: 'vouchers' as const,
+              sourceType: v.sourceType,
+              source: 'voucher_holding' as const,
+            }));
+            
+            // 2. 从奖励发放记录生成收入记录（可能包含已消费/转移的凭证）
+            const rewardRecordTransactions = rewardRecords.map(r => ({
+              id: `reward_${r.id}`,
+              type: 'income' as const,
+              amount: r.amount,
+              description: `🎮 ${r.triggerData?.gameId || '游戏'} 奖励`,
+              timestamp: new Date(r.timestamp),
+              currency: 'vouchers' as const,
+              sourceType: VoucherSourceType.INSTANT,
+              source: 'reward_distribution' as const,
+              gameId: r.gameId,
+            }));
+            
+            // 3. 合并去重：优先使用voucher持有记录，补充奖励发放记录
+            const voucherIdSet = new Set(userVouchers.map(v => v.id));
+            const combined = [
+              ...voucherTransactions,
+              ...rewardRecordTransactions.filter(r => !voucherIdSet.has(r.id.replace('reward_', ''))),
+            ];
+            
+            // 按时间倒序排列
+            filteredTransactions = combined.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
           } catch (error) {
-            console.error('获取A币交易记录失败:', error);
-            filteredTransactions = generateSampleTransactions('aCoins');
+            console.error('获取凭证交易记录失败:', error);
+            filteredTransactions = [];
           }
           break;
+        }
       }
 
       // 如果没有真实交易记录，且不是现金类型，则生成一些示例数据
-      if (filteredTransactions.length === 0 && currency !== 'cash') {
+      if (filteredTransactions.length === 0 && currency !== 'cash' && currency !== 'vouchers') {
         filteredTransactions = generateSampleTransactions(currency);
       }
 
@@ -707,7 +641,7 @@ const GamePersonalCenter: React.FC = () => {
       setSelectedWalletCurrency(currency);
     } catch (error) {
       console.error('获取钱包交易记录失败:', error);
-      // 生成示例数据作为备选，但现金使用真实的固定数据
+      // 生成示例数据作为备选，但现金和凭证使用真实的固定数据
       if (currency === 'cash') {
         const realCashTransactions = [
           {
@@ -739,6 +673,9 @@ const GamePersonalCenter: React.FC = () => {
           }
         ];
         setWalletTransactions(realCashTransactions);
+      } else if (currency === 'vouchers') {
+        // 凭证数据已由 try 块处理，此处不再重复
+        setWalletTransactions([]);
       } else {
         const sampleTransactions = generateSampleTransactions(currency);
         setWalletTransactions(sampleTransactions);
@@ -779,7 +716,7 @@ const GamePersonalCenter: React.FC = () => {
   };
 
   // 生成示例交易数据 - 仅用于非现金货币或API调用失败时的备选方案
-  const generateSampleTransactions = (currency: 'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'aCoins' | 'oCoins') => {
+  const generateSampleTransactions = (currency: 'cash' | 'gameCoin' | 'newDayGameCoin' | 'computingPower' | 'oCoins' | 'vouchers') => {
     const now = new Date();
     const transactions = [];
 
@@ -823,16 +760,6 @@ const GamePersonalCenter: React.FC = () => {
             currency: 'computingPower'
           };
           break;
-        case 'aCoins':
-          transaction = {
-            id: `acoin_${i}`,
-            type: 'income', // A币只有发放收入
-            amount: (Math.random() * 5 + 0.5).toFixed(2),
-            description: i % 3 === 0 ? 'A币发放奖励' : i % 2 === 0 ? '贡献奖励' : '活跃奖励',
-            timestamp: date,
-            currency: 'aCoins'
-          };
-          break;
         case 'oCoins':
           transaction = {
             id: `ocoin_${i}`,
@@ -843,6 +770,7 @@ const GamePersonalCenter: React.FC = () => {
             currency: 'oCoins'
           };
           break;
+        // voucher 已接入真实数据，不再生成模拟数据
       }
       
       if (transaction) {
@@ -913,39 +841,24 @@ const GamePersonalCenter: React.FC = () => {
 
   const loadGlobalStats = async () => {
     try {
-      const fundPoolData = await fundPoolService.getPublicFundPoolData();
-      const allTransactions = await fundPoolService.getAllTransactions();
-      const { aCoinStats, oCoinStats } = fundPoolData;
-
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      const dailyTransactions = allTransactions.filter(tx => new Date(tx.timestamp) >= today).length;
-
       setGlobalStats({
-        totalUsers: aCoinStats.holdersCount,
-        onlineUsers: Math.floor(aCoinStats.holdersCount * (0.05 + Math.random() * 0.05)), // 5-10% of total
-        totalComputePower: 45.6, // Mock data, as source is unclear
-        dailyTransactions: dailyTransactions,
-        aCoinCirculatingSupply: aCoinStats.circulatingSupply,
-        aCoinHolders: aCoinStats.holdersCount,
-        oCoinPrice: oCoinStats.currentPrice,
-        oCoinMarketCap: oCoinStats.marketCap,
-        aCoinTotalSupply: (aCoinStats as any).totalSupply || 0,
-        oCoinCirculatingSupply: (oCoinStats as any).circulatingSupply || 0,
+        totalUsers: 1234,
+        onlineUsers: 89,
+        totalComputePower: 0,
+        dailyTransactions: 0,
+        oCoinPrice: 0,
+        oCoinMarketCap: 0,
+        oCoinCirculatingSupply: 0,
       });
     } catch (error) {
       console.error('获取全网数据失败:', error);
-      // Fallback to some mock data
       setGlobalStats({
-        totalUsers: 1234567,
-        onlineUsers: 89432,
-        totalComputePower: 45.6,
-        dailyTransactions: 2345,
-        aCoinCirculatingSupply: 0,
-        aCoinHolders: 0,
+        totalUsers: 1234,
+        onlineUsers: 89,
+        totalComputePower: 0,
+        dailyTransactions: 0,
         oCoinPrice: 0,
         oCoinMarketCap: 0,
-        aCoinTotalSupply: 0,
         oCoinCirculatingSupply: 0,
       });
     }
@@ -995,9 +908,8 @@ const GamePersonalCenter: React.FC = () => {
       const configRates = platformConfigService.getExchangeRates();
       const exchangeRates = {
         cash: 1,
-        gameCoin: configRates.gameCoinsToRMB, // 从平台配置获取
-        computingPower: configRates.computingPowerToRMB, // 从平台配置获取
-        aCoins: 1 // A币与人民币1:1兑换
+        gameCoin: configRates.gameCoinsToRMB,
+        computingPower: configRates.computingPowerToRMB,
       };
       
       console.log('[兑换] 使用实时配置汇率:', configRates);
@@ -1016,38 +928,12 @@ const GamePersonalCenter: React.FC = () => {
         case 'gameCoin':
           hasEnoughBalance = wallet ? wallet.gameCoins >= amount : false;
           fromAmount = amount;
-          
-          // 🔥 游戏币兑换特殊处理：使用平台配置的比例
-          if (exchangeTo === 'aCoins') {
-            // 游戏币兑换A币：使用平台配置的比例
-            const aCoinToGameCoinRate = platformConfigService.getParameter('a-coin-to-game-coin-rate') || 100;
-            toAmount = amount / aCoinToGameCoinRate; // 反向计算
-            console.log(`[游戏币兑换] ${amount} 游戏币 → ${toAmount} A币 (比例: ${aCoinToGameCoinRate}:1)`);
-          } else {
-            // 其他兑换使用通用汇率
-            toAmount = amount * exchangeRates.gameCoin / exchangeRates[exchangeTo as keyof typeof exchangeRates];
-          }
+          toAmount = amount * exchangeRates.gameCoin / exchangeRates[exchangeTo as keyof typeof exchangeRates];
           break;
         case 'computingPower':
           hasEnoughBalance = wallet ? wallet.computingPower >= amount : false;
           fromAmount = amount;
           toAmount = amount * exchangeRates.computingPower / exchangeRates[exchangeTo as keyof typeof exchangeRates];
-          break;
-        case 'aCoins':
-          // A币余额检查
-          hasEnoughBalance = wallet ? (wallet.aCoins || 0) >= amount : false;
-          fromAmount = amount;
-          
-          // 🔥 A币兑换特殊处理：使用平台配置的比例
-          if (exchangeTo === 'gameCoin') {
-            // A币兑换游戏币：使用平台配置的比例
-            const aCoinToGameCoinRate = platformConfigService.getParameter('a-coin-to-game-coin-rate') || 100;
-            toAmount = amount * aCoinToGameCoinRate;
-            console.log(`[A币兑换] ${amount} A币 → ${toAmount} 游戏币 (比例: 1:${aCoinToGameCoinRate})`);
-          } else {
-            // 其他兑换使用通用汇率
-            toAmount = amount * exchangeRates.aCoins / exchangeRates[exchangeTo as keyof typeof exchangeRates];
-          }
           break;
       }
 
@@ -1056,37 +942,7 @@ const GamePersonalCenter: React.FC = () => {
         return;
       }
 
-      // 如果涉及A币的兑换，需要特殊处理
-      if (exchangeFrom === 'aCoins' || exchangeTo === 'aCoins') {
-        // 检查A币兑换限制
-        try {
-          // 获取用户A币兑换限制
-          const aCoinLimits = await aCoinService.getUserACoinExchangeLimits();
-          
-          if (exchangeFrom === 'aCoins') {
-            // 检查是否超过A币兑出限制
-            if (amount > aCoinLimits.dailyExchangeOut) {
-              alert(`A币兑出超过每日限额 ${aCoinLimits.dailyExchangeOut} A币`);
-              return;
-            }
-          } else if (exchangeTo === 'aCoins') {
-            // 检查是否超过A币兑入限制
-            if (toAmount > aCoinLimits.dailyExchangeIn) {
-              alert(`A币兑入超过每日限额 ${aCoinLimits.dailyExchangeIn} A币`);
-              return;
-            }
-          }
-        } catch (error) {
-          console.error('获取A币兑换限制失败:', error);
-          // 如果无法获取限制，使用默认限制
-          const defaultLimit = 100;
-          if ((exchangeFrom === 'aCoins' && amount > defaultLimit) || 
-              (exchangeTo === 'aCoins' && toAmount > defaultLimit)) {
-            alert(`A币兑换超过默认每日限额 ${defaultLimit} A币`);
-            return;
-          }
-        }
-      }
+
 
       // 执行兑换 - 使用钱包服务记录交易
       const currencyNames = {
@@ -1125,18 +981,6 @@ const GamePersonalCenter: React.FC = () => {
             description: `兑换算力为${currencyNames[exchangeTo as keyof typeof currencyNames]}`
           });
           break;
-        case 'aCoins':
-          // A币需要特殊处理，通过钱包服务更新
-          await walletService.addTransaction({
-            type: 'expense',
-            category: 'exchange',
-            amount: fromAmount,
-            currency: 'aCoins',
-            description: `A币兑换为${currencyNames[exchangeTo as keyof typeof currencyNames]}`
-          });
-          // 记录A币兑换交易
-          await aCoinService.recordACoinExchange(fromAmount, exchangeTo, toAmount);
-          break;
       }
       
       // 增加目标货币
@@ -1167,18 +1011,6 @@ const GamePersonalCenter: React.FC = () => {
             currency: 'computingPower',
             description: `${currencyNames[exchangeFrom as keyof typeof currencyNames]}兑换获得算力`
           });
-          break;
-        case 'aCoins':
-          // A币需要特殊处理，通过钱包服务更新
-          await walletService.addTransaction({
-            type: 'income',
-            category: 'exchange',
-            amount: toAmount,
-            currency: 'aCoins',
-            description: `${currencyNames[exchangeFrom as keyof typeof currencyNames]}兑换获得A币`
-          });
-          // 记录A币兑换交易
-          await aCoinService.recordACoinExchange(fromAmount, exchangeFrom, toAmount);
           break;
       }
       
@@ -1381,9 +1213,21 @@ const GamePersonalCenter: React.FC = () => {
                     <span className="text-slate-400">{t(dict,'personalCenter.left.wallet.computingPower')}</span>
                     <span className="text-purple-400 font-bold text-right">{wallet.computingPower.toFixed(1)}</span>
                   </div>
-                  <div className="grid grid-cols-2 items-center">
-                    <span className="text-slate-400">{t(dict,'personalCenter.left.wallet.aCoins')}</span>
-                    <span className="text-indigo-400 font-bold text-right">{(wallet.aCoins || 0).toFixed(2)}</span>
+                  {/* 双轨凭证系统显示 */}
+                  <div className="border-t border-slate-600/30 pt-2 mt-2">
+                    <div className="text-xs text-slate-500 mb-1">🎫 凭证资产 (双轨)</div>
+                    <div className="grid grid-cols-2 items-center">
+                      <span className="text-slate-400 text-xs">即时发放型</span>
+                      <span className="text-pink-400 font-bold text-right text-sm">{(wallet?.instantVouchers || 0).toFixed(0)} ({wallet?.instantVoucherCount || 0}张)</span>
+                    </div>
+                    <div className="grid grid-cols-2 items-center">
+                      <span className="text-slate-400 text-xs">计算分配型</span>
+                      <span className="text-rose-400 font-bold text-right text-sm">{(wallet?.algorithmVouchers || 0).toFixed(4)} ({wallet?.algorithmVoucherCount || 0}张)</span>
+                    </div>
+                    <div className="grid grid-cols-2 items-center mt-1 pt-1 border-t border-slate-700/30">
+                      <span className="text-slate-400 text-xs">合计</span>
+                      <span className="text-pink-400 font-bold text-right">{(wallet?.vouchers || 0).toFixed(0)} ({wallet?.voucherCount || 0}张)</span>
+                    </div>
                   </div>
                 </div>
               ) : (
@@ -1497,6 +1341,13 @@ const GamePersonalCenter: React.FC = () => {
               >
                 📝 {t(dict,'personalCenter.centerTabs.blog')}
               </button>
+
+              <Link
+                to="/publishing-center"
+                className="pb-2 px-2 text-sm font-bold text-purple-400 hover:text-purple-300 transition-colors"
+              >
+                🚀 发布游戏
+              </Link>
             </div>
 
             {/* 标签内容 */}
@@ -1551,19 +1402,51 @@ const GamePersonalCenter: React.FC = () => {
                     {userTransactions.filter(tx => tx.type === 'buy').length > 0 ? (
                       <div className="space-y-3">
                         {userTransactions.filter(tx => tx.type === 'buy').map((transaction) => (
-                          <div key={transaction.id} className="bg-slate-700/30 border border-slate-600/30 rounded-lg p-4">
+                          <div key={transaction.id} className={`rounded-lg p-4 ${
+                            transaction.isRedeemCode 
+                              ? 'bg-cyan-700/20 border border-cyan-600/30' 
+                              : 'bg-slate-700/30 border border-slate-600/30'
+                          }`}>
                             <div className="flex justify-between items-start">
-                              <div>
-                                <h4 className="font-bold text-purple-400">{transaction.itemName}</h4>
+                              <div className="flex-1">
+                                <div className="flex items-center gap-2">
+                                  <h4 className={`font-bold ${transaction.isRedeemCode ? 'text-cyan-400' : 'text-purple-400'}`}>
+                                    {transaction.itemName}
+                                  </h4>
+                                  {transaction.isRedeemCode && (
+                                    <span className="px-2 py-0.5 bg-cyan-500/20 text-cyan-400 text-xs rounded-full">
+                                      兑换码
+                                    </span>
+                                  )}
+                                </div>
                                 <p className="text-sm text-slate-400">
-                                  {t(dict,'personalCenter.transactions.purchaseWord')} • {new Date(transaction.timestamp).toLocaleDateString()}
+                                  {transaction.isRedeemCode ? '兑换码购买' : t(dict,'personalCenter.transactions.purchaseWord')} 
+                                  • {new Date(transaction.timestamp).toLocaleDateString()}
                                 </p>
+                                
+                                {/* 显示兑换码 */}
+                                {transaction.isRedeemCode && transaction.codes && (
+                                  <div className="mt-2 flex flex-wrap gap-2">
+                                    {transaction.codes.map((code: string, idx: number) => (
+                                      <code 
+                                        key={idx} 
+                                        className="px-2 py-1 bg-slate-800 text-cyan-300 text-xs rounded font-mono cursor-pointer hover:bg-slate-700"
+                                        onClick={() => navigator.clipboard.writeText(code)}
+                                        title="点击复制"
+                                      >
+                                        {code}
+                                      </code>
+                                    ))}
+                                  </div>
+                                )}
                               </div>
-                              <div className="text-right">
+                              <div className="text-right ml-4">
                                 <div className="font-bold text-red-400">
                                   -{(transaction.totalAmount || transaction.price).toFixed(2)}
                                 </div>
-                                <div className="text-xs text-slate-400">{t(dict,'personalCenter.transactions.expense')}</div>
+                                <div className="text-xs text-slate-400">
+                                  {transaction.isRedeemCode ? 'ACOIN' : t(dict,'personalCenter.transactions.expense')}
+                                </div>
                               </div>
                             </div>
                           </div>
@@ -1674,128 +1557,6 @@ const GamePersonalCenter: React.FC = () => {
                 <div className="mt-6">
                   <CommissionDisplay />
                 </div>
-                {/* A币贡献度分析 */}
-                <div className="bg-indigo-500/10 border border-indigo-400/20 rounded-lg p-4 mt-6">
-                  <div className="flex items-center justify-between mb-3">
-                    <h4 className="font-bold text-indigo-400">🅰️ {t(dict,'personalCenter.analysisSection.acoinAnalysis.title')}</h4>
-                    <div className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded">
-                      {lang === 'zh' ? '本月A币' : 'A Coin This Month'}: {(wallet?.aCoins || 0).toFixed(2)}
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <div className="text-sm text-slate-300 mb-2">{t(dict,'personalCenter.analysisSection.acoinAnalysis.basis')}</div>
-                    <div className="grid grid-cols-3 gap-3">
-                      <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                        <div className="text-yellow-400 font-bold mb-1">{(aCoinContribution.gameCoinsWeight * 100).toFixed(0)}%</div>
-                        <div className="text-xs text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.gameCoinsEarned')}</div>
-                      </div>
-                      <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                        <div className="text-purple-400 font-bold mb-1">{(aCoinContribution.computingPowerWeight * 100).toFixed(0)}%</div>
-                        <div className="text-xs text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.computingPower')}</div>
-                      </div>
-                      <div className="bg-slate-700/30 rounded-lg p-3 text-center">
-                        <div className="text-green-400 font-bold mb-1">{(aCoinContribution.transactionWeight * 100).toFixed(0)}%</div>
-                        <div className="text-xs text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.transactionActivity')}</div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="mb-4">
-                    <div className="text-sm text-slate-300 mb-2">{t(dict,'personalCenter.analysisSection.acoinAnalysis.thisMonth')}</div>
-                    <div className="bg-slate-700/30 rounded-lg p-3">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">游戏币获得</span>
-                        <span className="text-xs text-yellow-400">{aCoinContribution.gameCoinsEarned.toLocaleString()} {t(dict,'personalCenter.analysisSection.acoinAnalysis.coinsUnit')}</span>
-                      </div>
-                      <div className="w-full bg-slate-600 h-2 rounded-full">
-                        <div className="bg-yellow-400 h-2 rounded-full" style={{width: `${Math.min(aCoinContribution.gameCoinsEarned / 50, 100)}%`}}></div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-700/30 rounded-lg p-3 mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">算力贡献</span>
-                        <span className="text-xs text-purple-400">{aCoinContribution.computingPowerContribution.toFixed(1)} {t(dict,'personalCenter.analysisSection.acoinAnalysis.powerUnit')}</span>
-                      </div>
-                      <div className="w-full bg-slate-600 h-2 rounded-full">
-                        <div className="bg-purple-400 h-2 rounded-full" style={{width: `${Math.min(aCoinContribution.computingPowerContribution / 0.5, 100)}%`}}></div>
-                      </div>
-                    </div>
-                    
-                    <div className="bg-slate-700/30 rounded-lg p-3 mt-2">
-                      <div className="flex items-center justify-between mb-1">
-                        <span className="text-xs text-slate-400">交易活跃度</span>
-                        <span className="text-xs text-green-400">{aCoinContribution.transactionActivity} {t(dict,'personalCenter.analysisSection.acoinAnalysis.tradesUnit')}</span>
-                      </div>
-                      <div className="w-full bg-slate-600 h-2 rounded-full">
-                        <div className="bg-green-400 h-2 rounded-full" style={{width: `${Math.min(aCoinContribution.transactionActivity / 0.3, 100)}%`}}></div>
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <div className="text-xs text-slate-400">
-                    <p>{lang === 'zh' ? 'A币是基于您的平台贡献度发放的平台币，与人民币1:1兑换。' : 'A Coin is issued based on your contribution; 1:1 to RMB.'}</p>
-                    <p className="mt-1">{lang === 'zh' ? '每日自动结算，来源于平台净收入的40%，按贡献度比例分配。' : 'Settled daily from 40% of net income, allocated by contribution.'}</p>
-                    <p className="mt-1">{lang === 'zh' ? '上次结算' : 'Last settlement'}: {aCoinContribution.lastDistribution.toLocaleDateString()} | {lang === 'zh' ? '累计获得' : 'Total earned'}: {aCoinContribution.totalACoinEarned.toFixed(2)} {lang === 'zh' ? 'A币' : 'A Coin'}</p>
-                  </div>
-                  
-                  {/* A币每日结算记录 */}
-                  <div className="mt-4 border-t border-indigo-400/20 pt-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="text-sm font-bold text-indigo-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.dailyRecords')}</h4>
-                      <button
-                        onClick={() => setShowACoinSettlementDetails(!showACoinSettlementDetails)}
-                        className="text-xs bg-indigo-500/20 text-indigo-400 px-2 py-1 rounded hover:bg-indigo-500/30 transition-colors"
-                      >
-                        {showACoinSettlementDetails ? t(dict,'personalCenter.analysisSection.acoinAnalysis.collapse') : t(dict,'personalCenter.analysisSection.acoinAnalysis.expand')}
-                      </button>
-                    </div>
-                    
-                    {showACoinSettlementDetails ? (
-                      <div className="space-y-3 max-h-60 overflow-y-auto">
-                        {aCoinDailySettlements.length > 0 ? (
-                          aCoinDailySettlements.map((settlement, index) => (
-                            <div key={index} className="bg-slate-700/30 rounded-lg p-3">
-                              <div className="flex justify-between items-center mb-2">
-                                <div className="text-sm font-medium text-indigo-400">
-                                  {new Date(settlement.timestamp).toLocaleDateString()}
-                                </div>
-                                <div className="text-sm font-bold text-green-400">
-                                  +{settlement.amount.toFixed(2)} A币
-                                </div>
-                              </div>
-                              <div className="grid grid-cols-2 gap-2 text-xs">
-                                <div className="text-slate-400">{lang === 'zh' ? '贡献分数' : 'Contribution Score'}: <span className="text-yellow-400">{settlement.contributionScore.toFixed(2)}</span></div>
-                                <div className="text-slate-400">{lang === 'zh' ? '总发放' : 'Total Distributed'}: <span className="text-blue-400">{settlement.totalDistributed.toFixed(2)} {lang === 'zh' ? 'A币' : 'A Coin'}</span></div>
-                                <div className="text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.contributors')}: <span className="text-purple-400">{settlement.recipientsCount}</span></div>
-                                <div className="text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.share')}: <span className="text-orange-400">{((settlement.amount / settlement.totalDistributed) * 100).toFixed(2)}%</span></div>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-center py-4 text-slate-400">
-                            {t(dict,'personalCenter.analysisSection.acoinAnalysis.none')}
-                          </div>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="bg-slate-700/30 rounded-lg p-3">
-                        <div className="flex justify-between items-center">
-                          <div className="text-sm text-slate-400">{t(dict,'personalCenter.analysisSection.acoinAnalysis.todayStatus')}</div>
-                          <div className="text-sm font-medium text-green-400">
-                            {aCoinDailySettlements.length > 0 && new Date(aCoinDailySettlements[0].timestamp).toDateString() === new Date().toDateString() 
-                              ? t(dict,'personalCenter.analysisSection.acoinAnalysis.settled') 
-                              : t(dict,'personalCenter.analysisSection.acoinAnalysis.pending')}
-                          </div>
-                        </div>
-                        <div className="mt-2 text-xs text-slate-400">
-                          {t(dict,'personalCenter.analysisSection.acoinAnalysis.autoTime')}
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
               </div>
             )}
 
@@ -1838,11 +1599,21 @@ const GamePersonalCenter: React.FC = () => {
                           <div className="text-xl font-bold text-purple-400">{wallet.computingPower.toFixed(1)}</div>
                         </div>
                       </div>
-                      <div className="bg-indigo-500/10 border border-indigo-400/20 rounded-lg p-4">
+                      <div className="bg-pink-500/10 border border-pink-400/20 rounded-lg p-4 cursor-pointer hover:bg-pink-500/20 transition-colors relative" onClick={() => handleWalletCurrencyClick('vouchers')}>
                         <div className="text-center">
-                          <div className="text-2xl mb-2">🅰️</div>
-                          <div className="text-sm text-slate-400">{t(dict,'personalCenter.walletSection.cards.aCoins')}</div>
-                          <div className="text-xl font-bold text-indigo-400">{(wallet.aCoins || 0).toFixed(2)}</div>
+                          <div className="text-2xl mb-2">🎫</div>
+                          <div className="text-sm text-slate-400">凭证资产</div>
+                          <div className="text-xl font-bold text-pink-400">{(wallet?.vouchers || 0).toFixed(0)}</div>
+                          <div className="text-xs text-pink-300/70">{wallet?.voucherCount || 0} 张</div>
+                          {/* 双轨类型指示 */}
+                          <div className="mt-2 flex justify-center gap-1 text-[10px]">
+                            <span className="px-1.5 py-0.5 bg-pink-500/20 rounded text-pink-300">即时:{wallet?.instantVoucherCount || 0}</span>
+                            <span className="px-1.5 py-0.5 bg-rose-500/20 rounded text-rose-300">计算:{wallet?.algorithmVoucherCount || 0}</span>
+                          </div>
+                        </div>
+                        {/* 双轨标识 */}
+                        <div className="absolute top-1 right-1">
+                          <span className="text-[8px] bg-pink-500/30 text-pink-200 px-1 rounded">双轨</span>
                         </div>
                       </div>
                       <div className="bg-orange-500/10 border border-orange-400/20 rounded-lg p-4">
@@ -1995,24 +1766,6 @@ const GamePersonalCenter: React.FC = () => {
                     </button>
                     
                     <button
-                      onClick={() => handleWalletCurrencyClick('aCoins')}
-                      className={`p-3 rounded-lg border transition-all ${
-                        selectedWalletCurrency === 'aCoins'
-                          ? 'bg-indigo-500/20 border-indigo-400/50 text-indigo-400'
-                          : 'bg-slate-600/30 border-slate-500/30 text-slate-400 hover:bg-slate-600/50'
-                      }`}
-                    >
-                      <div className="text-lg mb-1">🅰️</div>
-                      <div className="text-sm font-medium">A币</div>
-                      <div className="text-xs opacity-75">{t(dict,'personalCenter.walletDetails.viewHint')}</div>
-                      {aCoinDailySettlements.length > 0 && new Date(aCoinDailySettlements[0].timestamp).toDateString() === new Date().toDateString() && (
-                        <div className="mt-1 text-xs bg-green-500/30 text-green-400 px-1 py-0.5 rounded">
-                          今日已结算
-                        </div>
-                      )}
-                    </button>
-                    
-                    <button
                       onClick={() => handleWalletCurrencyClick('oCoins')}
                       className={`p-3 rounded-lg border transition-all ${
                         selectedWalletCurrency === 'oCoins'
@@ -2029,6 +1782,24 @@ const GamePersonalCenter: React.FC = () => {
                         </div>
                       )}
                     </button>
+                    
+                    {/* 双轨凭证按钮 */}
+                    <button
+                      onClick={() => handleWalletCurrencyClick('vouchers')}
+                      className={`p-3 rounded-lg border transition-all ${
+                        selectedWalletCurrency === 'vouchers'
+                          ? 'bg-pink-500/20 border-pink-400/50 text-pink-400'
+                          : 'bg-slate-600/30 border-slate-500/30 text-slate-400 hover:bg-slate-600/50'
+                      }`}
+                    >
+                      <div className="text-lg mb-1">🎫</div>
+                      <div className="text-sm font-medium">凭证资产</div>
+                      <div className="text-xs opacity-75">点击查看双轨详情</div>
+                      <div className="mt-1 flex justify-center gap-1">
+                        <span className="text-[8px] bg-pink-500/20 text-pink-300 px-1 rounded">即时:{wallet?.instantVoucherCount || 0}</span>
+                        <span className="text-[8px] bg-rose-500/20 text-rose-300 px-1 rounded">计算:{wallet?.algorithmVoucherCount || 0}</span>
+                      </div>
+                    </button>
                   </div>
 
 
@@ -2044,8 +1815,8 @@ const GamePersonalCenter: React.FC = () => {
                           {selectedWalletCurrency === 'gameCoin' && `🪙 游戏币明细`}
                           {selectedWalletCurrency === 'newDayGameCoin' && `☀️ New Day 游戏币明细`}
                           {selectedWalletCurrency === 'computingPower' && `⚡ ${t(dict,'personalCenter.walletDetails.headers.computingPower')}`}
-                          {selectedWalletCurrency === 'aCoins' && `🅰️ ${t(dict,'personalCenter.walletDetails.headers.aCoins')}`}
                           {selectedWalletCurrency === 'oCoins' && `🔶 ${t(dict,'personalCenter.walletDetails.headers.oCoins')}`}
+                          {selectedWalletCurrency === 'vouchers' && `🎫 凭证资产明细 (双轨系统)`}
                         </h5>
                         <button
                           onClick={() => {
@@ -2058,6 +1829,29 @@ const GamePersonalCenter: React.FC = () => {
                           {t(dict,'personalCenter.walletDetails.footer.collapse')}
                         </button>
                       </div>
+                      
+                      {/* 凭证双轨统计摘要 */}
+                      {selectedWalletCurrency === 'vouchers' && (
+                        <div className="mb-3 p-3 bg-pink-500/10 border border-pink-400/20 rounded-lg">
+                          <div className="text-xs text-pink-300 mb-2">🎫 双轨凭证统计</div>
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div className="bg-black/20 p-2 rounded">
+                              <div className="text-pink-400">即时发放型</div>
+                              <div className="text-white font-bold">{(wallet?.instantVouchers || 0).toFixed(0)} <span className="text-xs font-normal">({wallet?.instantVoucherCount || 0}张)</span></div>
+                              <div className="text-slate-400">来源: 活动/游戏奖励</div>
+                            </div>
+                            <div className="bg-black/20 p-2 rounded">
+                              <div className="text-rose-400">计算分配型</div>
+                              <div className="text-white font-bold">{(wallet?.algorithmVouchers || 0).toFixed(4)} <span className="text-xs font-normal">({wallet?.algorithmVoucherCount || 0}张)</span></div>
+                              <div className="text-slate-400">来源: A币日结/分红</div>
+                            </div>
+                          </div>
+                          <div className="mt-2 pt-2 border-t border-pink-400/20 flex justify-between text-xs">
+                            <span className="text-slate-400">合计:</span>
+                            <span className="text-pink-400 font-bold">{(wallet?.vouchers || 0).toFixed(0)} ({wallet?.voucherCount || 0}张)</span>
+                          </div>
+                        </div>
+                      )}
                       
                       <div className="space-y-2 max-h-60 overflow-y-auto">
                         {walletTransactions.length > 0 ? (
@@ -2072,6 +1866,16 @@ const GamePersonalCenter: React.FC = () => {
                                   }`}>
                                     {tx.type === 'income' ? t(dict,'personalCenter.walletDetails.tags.income') : t(dict,'personalCenter.walletDetails.tags.expense')}
                                   </span>
+                                  {/* 凭证类型标签 */}
+                                  {selectedWalletCurrency === 'vouchers' && tx.sourceType && (
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                      tx.sourceType === 'algorithm' 
+                                        ? 'bg-rose-500/20 text-rose-400' 
+                                        : 'bg-pink-500/20 text-pink-400'
+                                    }`}>
+                                      {tx.sourceType === 'algorithm' ? '计算型' : '即时型'}
+                                    </span>
+                                  )}
                                   <span className="text-sm text-white">{tx.description}</span>
                                 </div>
                                 <div className="text-xs text-gray-400">
@@ -2081,6 +1885,12 @@ const GamePersonalCenter: React.FC = () => {
                                     hour: '2-digit',
                                     minute: '2-digit'
                                   })}
+                                  {/* 算法型凭证显示贡献度 */}
+                                  {selectedWalletCurrency === 'vouchers' && tx.sourceType === 'algorithm' && tx.contributionRatio && (
+                                    <span className="ml-2 text-rose-400">
+                                      贡献度: {(tx.contributionRatio * 100).toFixed(2)}%
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <div className="text-right">
@@ -2092,7 +1902,7 @@ const GamePersonalCenter: React.FC = () => {
                                   {tx.amount}
                                   {selectedWalletCurrency === 'gameCoin' && ' 币'}
                                   {selectedWalletCurrency === 'computingPower' && ' 算力'}
-                                  {selectedWalletCurrency === 'aCoins' && ' A币'}
+                                  {selectedWalletCurrency === 'vouchers' && ' 凭证'}
                                 </div>
                               </div>
                             </div>
@@ -2102,8 +1912,8 @@ const GamePersonalCenter: React.FC = () => {
                             {selectedWalletCurrency === 'cash' && t(dict,'personalCenter.walletDetails.empty.cash')}
                             {selectedWalletCurrency === 'gameCoin' && t(dict,'personalCenter.walletDetails.empty.gameCoin')}
                             {selectedWalletCurrency === 'computingPower' && t(dict,'personalCenter.walletDetails.empty.computingPower')}
-                            {selectedWalletCurrency === 'aCoins' && t(dict,'personalCenter.walletDetails.empty.aCoins')}
                             {selectedWalletCurrency === 'oCoins' && t(dict,'personalCenter.walletDetails.empty.oCoins')}
+                            {selectedWalletCurrency === 'vouchers' && '暂无凭证记录'}
                           </div>
                         )}
                       </div>
@@ -2173,24 +1983,6 @@ const GamePersonalCenter: React.FC = () => {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-slate-400">{t(dict,'personalCenter.right.metrics.dailyTransactions')}</span>
                     <span className="text-yellow-400 font-bold">₿ {globalStats.dailyTransactions.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">{t(dict,'personalCenter.right.metrics.aCoinBalance')}</span>
-                    <span className="text-indigo-400 font-bold">{(globalStats as any).aCoinTotalSupply.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">{t(dict,'personalCenter.right.metrics.aCoinCirculating')}</span>
-                    <span className="text-indigo-400 font-bold">{globalStats.aCoinCirculatingSupply.toLocaleString()}</span>
-                  </div>
-                </div>
-                <div className="bg-slate-700/30 rounded-lg p-3">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm text-slate-400">{t(dict,'personalCenter.right.metrics.aCoinHolders')}</span>
-                    <span className="text-indigo-400 font-bold">{globalStats.aCoinHolders.toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="bg-slate-700/30 rounded-lg p-3">
