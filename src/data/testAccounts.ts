@@ -32,6 +32,38 @@ export interface TestAccount {
 
 export const testAccounts: TestAccount[] = [
   {
+    id: "platform-founder",
+    username: "Joan",
+    password: "AllinONE",
+    email: "joan@allinone.com",
+    profile: {
+      nickname: "创始人Joan",
+      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=joan_founder",
+      level: 99,
+      joinDate: "2024-01-01",
+      totalGames: 9999,
+      totalEarnings: 999999.99
+    },
+    gameData: {
+      totalPower: 99999,
+      dailyEarnings: 9999.99,
+      gameCoins: 999999,
+      level: 99,
+      experience: 99999,
+      experienceToNext: 0,
+      multiplier: 10.0
+    },
+    gameHistory: [
+      {
+        date: "2025-01-20",
+        game: "全平台",
+        score: 999999,
+        earnings: 9999.99,
+        powerGained: 9999
+      }
+    ]
+  },
+  {
     id: "user-001",
     username: "player001",
     password: "Test123456",

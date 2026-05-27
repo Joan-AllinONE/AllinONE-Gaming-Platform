@@ -5,6 +5,7 @@ import { Toaster } from 'sonner';
 import App from "./App.tsx";
 import "./index.css";
 import { initCloudBase } from "./services/cloudbase.ts";
+import { voucherItemService } from "./services/voucherItemService.ts";
 
 const basename = '/AllinONE-Gaming-Platform';
 
@@ -12,6 +13,9 @@ const basename = '/AllinONE-Gaming-Platform';
 initCloudBase().catch((err) => {
   console.warn('CloudBase 初始化失败:', err.message);
 });
+
+// 初始化提案自动执行监听器
+voucherItemService.initAutoExecuteListener();
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

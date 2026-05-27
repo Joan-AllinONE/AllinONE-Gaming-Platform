@@ -75,6 +75,9 @@ export {
   algorithmVoucherService,
   type DataCollector,
 } from './services/AlgorithmVoucherService';
+export { VoteVoucherService, voteVoucherService } from './services/VoteVoucherService';
+export { VoteFraudDetector, voteFraudDetector, AuditLevel, FraudFlag } from './services/VoteFraudDetector';
+export type { FraudPrecheckResult, FraudAuditLog } from './services/VoteFraudDetector';
 
 // 存储层
 export { voucherDB } from './storage/VoucherDatabase';

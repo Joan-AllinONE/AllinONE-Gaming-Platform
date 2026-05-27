@@ -63,6 +63,7 @@ export enum VoucherSourceType {
   INSTANT = 'instant',       // 即时发放型（活动/游戏奖励直接发放）
   ALGORITHM = 'algorithm',   // 计算分配型（基于贡献度算法计算后发放）
   ITEM = 'item',             // 游戏道具凭证（承载游戏内道具）
+  VOTE = 'vote',             // 投票凭证（社区治理投票权）
 }
 
 /**

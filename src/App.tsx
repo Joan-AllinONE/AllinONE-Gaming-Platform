@@ -33,6 +33,7 @@ import { PlatformManagementProvider } from '@/contexts/PlatformManagementContext
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NewDayIntegrationInit from '@/components/NewDayIntegrationInit';
+import VoteNotifications from '@/components/voucher-system/VoteNotifications';
 import NewDayIntegrationTest from '@/pages/NewDayIntegrationTest';
 import PublishingCenter from '@/pages/PublishingCenter';
 import SkillWizardPage from '@/pages/SkillWizardPage';
@@ -50,6 +51,8 @@ export default function App() {
             <PlatformManagementProvider>
             {/* 自动初始化 New Day 集成 */}
             <NewDayIntegrationInit autoLogin={true} autoSyncInterval={30000} />
+            {/* 全局投票通知提示 */}
+            <VoteNotifications />
             <LanguageSwitcher />
             <Routes>
           <Route path="/" element={<Home />} />

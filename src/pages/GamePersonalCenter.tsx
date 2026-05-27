@@ -25,6 +25,7 @@ import { getDict, t } from '@/utils/i18n';
 import { voucherService } from '@/voucher-system/services/VoucherService';
 import { platformBindingService } from '@/voucher-system/services/PlatformBindingService';
 import { VoucherSourceType } from '@/voucher-system/types';
+import VoteNotificationPanel from '@/components/voucher-system/VoteNotificationPanel';
 
 // 获取物品图标的工具函数
 function getItemIcon(category: string): string {
@@ -1342,6 +1343,17 @@ const GamePersonalCenter: React.FC = () => {
                 📝 {t(dict,'personalCenter.centerTabs.blog')}
               </button>
 
+              <button
+                onClick={() => setActiveTab('vote')}
+                className={`pb-2 px-2 text-sm font-bold transition-colors ${
+                  activeTab === 'vote'
+                    ? 'text-cyan-400 border-b-2 border-cyan-400'
+                    : 'text-slate-200 hover:text-cyan-300'
+                }`}
+              >
+                🗳️ 投票通知
+              </button>
+
               <Link
                 to="/publishing-center"
                 className="pb-2 px-2 text-sm font-bold text-purple-400 hover:text-purple-300 transition-colors"
@@ -1565,6 +1577,12 @@ const GamePersonalCenter: React.FC = () => {
             {activeTab === 'blog' && (
               <div>
                 <BlogManager />
+              </div>
+            )}
+
+            {activeTab === 'vote' && (
+              <div>
+                <VoteNotificationPanel />
               </div>
             )}
 

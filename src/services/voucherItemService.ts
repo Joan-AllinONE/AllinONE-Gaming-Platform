@@ -33,6 +33,16 @@ import {
 import { skillGateway } from '@/skills';
 import { redeemCodeService } from './redeemCodeService';
 import { RedeemCode, RedeemCodeStatus, ItemType } from '@/types/redeemCode';
+import {
+  GameProposalType,
+  ProposalStatus,
+  VoteStakeholderType,
+} from '@/types/gameProposal';
+import type {
+  GameProposal,
+  GameProposalPayload,
+} from '@/types/gameProposal';
+import { gameProposalService } from './gameProposalService';
 
 // ==================== 常量定义 ====================
 
@@ -648,6 +658,310 @@ class VoucherItemService {
     const url = new URL(gameUrl, window.location.origin);
     url.searchParams.set('itemVoucher', voucherId);
     return url.toString();
+  }
+
+  // ============ 投票治理 - 道具提案 ============
+
+  /**
+   * 🆕 发起道具发布提案（替代直接创建）
+   * 通过投票治理流程，而非直接创建道具模板
+   */
+  proposeNewItem(params: {
+    gameId: string;
+    gameName: string;
+    template: Omit<ItemVoucherTemplate, 'id' | 'createdAt' | 'updatedAt' | 'mintedCount'>;
+    proposerId: string;
+    proposerName: string;
+    proposerType: VoteStakeholderType;
+    reason: string;
+    voteDurationHours?: number;
+    whitelist?: string[];
+    revenueSharing?: { gameShare: number; platformShare: number; creatorShare?: number };
+  }): GameProposal {
+    const payload: GameProposalPayload = {
+      proposalType: GameProposalType.NEW_ITEM,
+      itemTemplate: {
+        name: params.template.name,
+        description: params.template.description,
+        itemType: params.template.itemType,
+        rarity: params.template.rarity || 'common',
+        pricing: { price: params.template.pricing.price, currency: params.template.pricing.currency },
+        gameEffect: { itemId: params.template.gameEffect.itemId, quantity: params.template.gameEffect.quantity },
+        supplyPolicy: params.template.supplyPolicy === ItemSupplyPolicy.LIMITED ? 'limited' : 'open',
+        totalSupply: params.template.totalSupply,
+        mintCount: 100, // 默认初始铸造100张
+      },
+    };
+
+    return gameProposalService.createProposal({
+      gameId: params.gameId,
+      gameName: params.gameName,
+      title: `【道具发布】${params.template.name}`,
+      description: `发布新道具「${params.template.name}」：${params.template.description}`,
+      reason: params.reason,
+      proposalType: GameProposalType.NEW_ITEM,
+      payload,
+      proposerId: params.proposerId,
+      proposerName: params.proposerName,
+      proposerType: params.proposerType,
+      voteDurationHours: params.voteDurationHours,
+      whitelist: params.whitelist,
+      revenueSharing: params.revenueSharing,
+    });
+  }
+
+  /**
+   * 🆕 发起道具铸造提案
+   */
+  proposeMintVouchers(params: {
+    gameId: string;
+    gameName: string;
+    templateId: string;
+    templateName: string;
+    count: number;
+    reason: string;
+    proposerId: string;
+    proposerName: string;
+    proposerType: VoteStakeholderType;
+    voteDurationHours?: number;
+    whitelist?: string[];
+  }): GameProposal {
+    // 铸造提案前置校验：限量道具不可超发
+    const template = this.getItemTemplate(params.templateId);
+    if (template && template.supplyPolicy === 'limited' && template.totalSupply) {
+      const remaining = Math.max(0, template.totalSupply - template.mintedCount);
+      if (params.count > remaining) {
+        throw new Error(
+          `限量道具「${template.name}」剩余可铸造 ${remaining} 张，无法发起铸造 ${params.count} 张的提案`,
+        );
+      }
+    }
+
+    const payload: GameProposalPayload = {
+      proposalType: GameProposalType.MINT_ITEM,
+      mintData: {
+        templateId: params.templateId,
+        templateName: params.templateName,
+        count: params.count,
+      },
+    };
+
+    return gameProposalService.createProposal({
+      gameId: params.gameId,
+      gameName: params.gameName,
+      title: `【铸造凭证】${params.templateName} x ${params.count}`,
+      description: `为道具「${params.templateName}」铸造 ${params.count} 张凭证`,
+      reason: params.reason,
+      proposalType: GameProposalType.MINT_ITEM,
+      payload,
+      proposerId: params.proposerId,
+      proposerName: params.proposerName,
+      proposerType: params.proposerType,
+      voteDurationHours: params.voteDurationHours,
+      whitelist: params.whitelist,
+    });
+  }
+
+  /**
+   * 🆕 执行已通过的道具提案
+   * 根据提案类型执行相应的道具操作（创建模板/铸造凭证等）
+   */
+  executeApprovedProposal(proposalId: string): {
+    success: boolean;
+    message: string;
+    template?: ItemVoucherTemplate;
+    vouchers?: Voucher[];
+  } {
+    const proposal = gameProposalService.getProposal(proposalId);
+    if (!proposal) {
+      return { success: false, message: '提案不存在' };
+    }
+
+    if (proposal.status !== ProposalStatus.PASSED) {
+      return { success: false, message: '只有已通过的提案才能执行' };
+    }
+
+    try {
+      // 根据提案类型执行不同操作
+      if (proposal.proposalType === GameProposalType.NEW_ITEM && proposal.payload.itemTemplate) {
+        const tmpl = proposal.payload.itemTemplate;
+        const newTemplate = this.createItemTemplate({
+          gameId: proposal.gameId,
+          gameName: proposal.gameName,
+          name: tmpl.name,
+          description: tmpl.description,
+          itemType: tmpl.itemType,
+          icon: 'fa-box',
+          supplyPolicy: tmpl.supplyPolicy === 'limited' ? ItemSupplyPolicy.LIMITED : ItemSupplyPolicy.OPEN,
+          totalSupply: tmpl.totalSupply,
+          pricing: {
+            price: tmpl.pricing.price,
+            currency: tmpl.pricing.currency,
+            acceptVoucher: true,
+            voucherPrice: tmpl.pricing.price,
+          },
+          gameEffect: {
+            itemId: tmpl.gameEffect.itemId,
+            quantity: tmpl.gameEffect.quantity,
+            metadata: {},
+          },
+          rarity: tmpl.rarity,
+          consumable: tmpl.itemType === 'consumable',
+          stackable: true,
+          isActive: true,
+          createdBy: proposal.proposerId,
+        });
+
+        // 自动铸造初始库存
+        const mintCount = tmpl.mintCount || 100;
+        const mintResult = this.mintItemVouchers({
+          gameId: proposal.gameId,
+          templateId: newTemplate.id,
+          count: mintCount,
+        });
+
+        // 标记为已执行
+        gameProposalService.executeProposal(proposalId);
+
+        return {
+          success: true,
+          message: `已创建道具「${newTemplate.name}」并铸造 ${mintCount} 张凭证`,
+          template: newTemplate,
+          vouchers: mintResult.vouchers,
+        };
+
+      } else if (proposal.proposalType === GameProposalType.MINT_ITEM && proposal.payload.mintData) {
+        const mintData = proposal.payload.mintData;
+        const mintResult = this.mintItemVouchers({
+          gameId: proposal.gameId,
+          templateId: mintData.templateId,
+          count: mintData.count,
+        });
+
+        gameProposalService.executeProposal(proposalId);
+
+        return {
+          success: mintResult.success,
+          message: mintResult.message,
+          vouchers: mintResult.vouchers,
+        };
+      }
+
+      // 对于其他类型（配置修改/内容修改等），标记为已执行
+      gameProposalService.executeProposal(proposalId);
+      return { success: true, message: '提案已执行' };
+
+    } catch (error) {
+      const errMsg = error instanceof Error ? error.message : '执行失败';
+      gameProposalService.markExecutionFailed(proposalId, errMsg);
+      return { success: false, message: errMsg };
+    }
+  }
+
+  /**
+   * 🆕 通用提案执行器（按类型分发）
+   * 处理所有 GameProposalType 的执行逻辑
+   */
+  executeProposalByType(proposal: GameProposal): { success: boolean; message: string } {
+    switch (proposal.proposalType) {
+      case GameProposalType.NEW_ITEM:
+      case GameProposalType.MINT_ITEM: {
+        const result = this.executeApprovedProposal(proposal.id);
+        return { success: result.success, message: result.message };
+      }
+      case GameProposalType.EDIT_ITEM: {
+        // 修改道具属性 → 更新现有模板
+        if (proposal.payload.itemTemplate) {
+          const tmpl = proposal.payload.itemTemplate;
+          const templates = this.getItemTemplates(proposal.gameId);
+          const existing = templates.find(t => t.name === tmpl.name);
+          if (existing) {
+            this.updateItemTemplate(existing.id, {
+              description: tmpl.description,
+              pricing: {
+                price: tmpl.pricing.price,
+                currency: tmpl.pricing.currency,
+                acceptVoucher: true,
+                voucherPrice: tmpl.pricing.price,
+              },
+              rarity: tmpl.rarity,
+            });
+          }
+        }
+        gameProposalService.executeProposal(proposal.id);
+        return { success: true, message: '道具属性已更新' };
+      }
+      case GameProposalType.DELETE_ITEM: {
+        // 下架道具 → 软删除模板
+        if (proposal.payload.itemTemplate) {
+          const templates = this.getItemTemplates(proposal.gameId);
+          const existing = templates.find(t => t.name === proposal.payload.itemTemplate!.name);
+          if (existing) {
+            this.removeItemTemplate(existing.id);
+          }
+        }
+        gameProposalService.executeProposal(proposal.id);
+        return { success: true, message: '道具已下架' };
+      }
+      case GameProposalType.ADJUST_PRICE: {
+        // 调整价格 → 更新模板定价
+        if (proposal.payload.itemTemplate) {
+          const tmpl = proposal.payload.itemTemplate;
+          const templates = this.getItemTemplates(proposal.gameId);
+          const existing = templates.find(t => t.name === tmpl.name);
+          if (existing) {
+            this.updateItemTemplate(existing.id, {
+              pricing: {
+                price: tmpl.pricing.price,
+                currency: tmpl.pricing.currency,
+                acceptVoucher: true,
+                voucherPrice: tmpl.pricing.price,
+              },
+            });
+          }
+        }
+        gameProposalService.executeProposal(proposal.id);
+        return { success: true, message: '价格已调整' };
+      }
+      // 内容类提案（角色/地图/玩法/配置/难度）
+      // 当前阶段仅标记为已执行，具体实现由游戏方自行处理
+      case GameProposalType.NEW_CHARACTER:
+      case GameProposalType.NEW_MAP:
+      case GameProposalType.NEW_GAMEPLAY:
+      case GameProposalType.GAME_CONFIG:
+      case GameProposalType.DIFFICULTY_ADJUST:
+      case GameProposalType.NEW_CURRENCY:
+      case GameProposalType.MINT_CURRENCY:
+        gameProposalService.executeProposal(proposal.id);
+        return {
+          success: true,
+          message: `提案「${proposal.title}」已标记为已执行，具体实现由游戏方处理`,
+        };
+      default:
+        gameProposalService.executeProposal(proposal.id);
+        return { success: true, message: '提案已标记为已执行' };
+    }
+  }
+
+  /**
+   * 🆕 初始化自动执行监听器
+   * 在应用启动时调用一次，监听 proposal-auto-execute 事件
+   */
+  initAutoExecuteListener(): void {
+    window.addEventListener('proposal-auto-execute', ((e: CustomEvent) => {
+      const { proposal } = e.detail as { proposal: GameProposal };
+      console.log(`[VoucherItem] 🔧 自动执行提案: ${proposal.title} (${proposal.proposalType})`);
+
+      const result = this.executeProposalByType(proposal);
+
+      if (result.success) {
+        console.log(`[VoucherItem] ✅ 自动执行成功: ${proposal.title}`);
+      } else {
+        console.error(`[VoucherItem] ❌ 自动执行失败: ${proposal.title} - ${result.message}`);
+        gameProposalService.markExecutionFailed(proposal.id, result.message);
+      }
+    }) as EventListener);
+    console.log('[VoucherItem] 自动执行监听器已注册');
   }
 }
 

@@ -10,11 +10,16 @@ import {
   Package, Plus, Edit3, Trash2, Copy, Coins, AlertCircle,
   CheckCircle, X, Sparkles, TrendingUp, Shield,
   ChevronDown, ChevronUp, Search, Database, Gamepad2,
-  BarChart3, RefreshCw, ExternalLink
+  BarChart3, RefreshCw, ExternalLink, Vote,   Bug
 } from 'lucide-react';
 import { voucherItemService, type ItemVoucherPurchase } from '@/services/voucherItemService';
 import { getPublishedGames, type PublishedGame } from '@/services/publishedGameService';
 import { ItemVoucherTemplate, ItemSupplyPolicy } from '@/voucher-system/types';
+import { gameProposalService } from '@/services/gameProposalService';
+import { generateSimulatedPlayers, getPlayersByType } from '@/data/simulatedPlayers';
+import { VoteStakeholderType, GameVoteThreshold, GameProposalType } from '@/types/gameProposal';
+import GameProposalCreateModal from '@/components/voucher-system/GameProposalCreateModal';
+import GameProposalList from '@/components/voucher-system/GameProposalList';
 
 // ==================== 类型定义 ====================
 
@@ -58,6 +63,11 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [editingTemplate, setEditingTemplate] = useState<ItemVoucherTemplate | null>(null);
   const [showMintForm, setShowMintForm] = useState<{ template: ItemVoucherTemplate } | null>(null);
+  const [showProposalModal, setShowProposalModal] = useState(false);
+  const [showProposalList, setShowProposalList] = useState(false);
+  const [voteMode, setVoteMode] = useState(false); // 是否使用投票治理模式
+  const [debugMode, setDebugMode] = useState(false); // 调试模式
+  const [proposalCreateMintTemplate, setProposalCreateMintTemplate] = useState<{templateId: string, templateName: string} | null>(null);
 
   // 操作反馈
   const [actionMsg, setActionMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -85,6 +95,34 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
   }, [selectedGameId]);
 
   const selectedGame = games.find(g => g.id === selectedGameId);
+
+  // 加载投票门槛配置
+  useEffect(() => {
+    if (selectedGameId) {
+      const threshold = gameProposalService.getGameVoteThreshold(selectedGameId);
+      // 如果游戏配置了投票治理（通过阈值不为0），启用投票模式
+      setVoteMode(threshold.passThreshold > 0);
+    }
+  }, [selectedGameId]);
+
+  // 初始化调试模式
+  useEffect(() => {
+    gameProposalService.initDebugMode();
+    setDebugMode(gameProposalService.isDebugMode());
+  }, []);
+
+  const toggleDebugMode = () => {
+    const next = !debugMode;
+    gameProposalService.setDebugMode(next);
+    setDebugMode(next);
+  };
+
+  // 获取当前用户的利益方类型
+  const getUserStakeholderType = (): VoteStakeholderType => {
+    const players = generateSimulatedPlayers();
+    const player = players.find(p => p.id === currentUserId);
+    return player?.type || VoteStakeholderType.PLAYER_COMMUNITY;
+  };
 
   const showAction = (type: 'success' | 'error', text: string) => {
     setActionMsg({ type, text });
@@ -248,13 +286,52 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
 
         <div className="flex items-center gap-3">
           {selectedGameId && (
-            <button
-              onClick={() => setShowCreateForm(true)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/25"
-            >
-              <Plus className="w-4 h-4" />
-              创建道具凭证
-            </button>
+            <>
+              {/* 调试模式开关 */}
+              <button
+                onClick={toggleDebugMode}
+                title={debugMode ? '关闭调试模式（恢复正常阈值）' : '开启调试模式（降低投票门槛便于测试）'}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-all text-sm border ${
+                  debugMode
+                    ? 'bg-amber-500/20 text-amber-400 border-amber-500/40 hover:bg-amber-500/30'
+                    : 'bg-slate-700/50 text-slate-500 border-slate-600/30 hover:bg-slate-600/50 hover:text-slate-300'
+                }`}
+              >
+                {debugMode ? <Bug className="w-4 h-4" /> : <Bug className="w-4 h-4 opacity-50" />}
+                <span className="hidden sm:inline">{debugMode ? '调试中' : '调试'}</span>
+              </button>
+
+              {/* 投票治理模式下的按钮 */}
+              <button
+                onClick={() => setShowProposalList(!showProposalList)}
+                className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all text-sm ${
+                  showProposalList
+                    ? 'bg-purple-600 text-white shadow-md'
+                    : 'bg-slate-700/50 text-slate-300 hover:bg-slate-600 hover:text-white border border-slate-600'
+                }`}
+              >
+                <Vote className="w-4 h-4" />
+                游戏提案
+              </button>
+
+              {voteMode ? (
+                <button
+                  onClick={() => setShowProposalModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/25 text-sm"
+                >
+                  <Vote className="w-4 h-4" />
+                  发起投票提案
+                </button>
+              ) : (
+                <button
+                  onClick={() => setShowCreateForm(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-lg font-medium transition-all shadow-lg shadow-purple-500/25 text-sm"
+                >
+                  <Plus className="w-4 h-4" />
+                  创建道具凭证
+                </button>
+              )}
+            </>
           )}
         </div>
       </div>
@@ -301,7 +378,21 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
           <h3 className="text-lg font-medium text-slate-400">请先选择游戏</h3>
           <p className="text-slate-500 text-sm mt-1">选择要管理道具凭证的游戏</p>
         </div>
-      ) : templates.length === 0 ? (
+      ) : (
+        <>
+          {/* 提案列表 */}
+          {showProposalList && (
+            <div className="bg-slate-800/40 border border-slate-700/50 rounded-xl p-5">
+              <GameProposalList
+                gameId={selectedGameId}
+                gameName={selectedGame?.name || ''}
+                currentUserId={currentUserId}
+                currentUserName={currentUsername}
+              />
+            </div>
+          )}
+
+          {templates.length === 0 && !showProposalList ? (
         <div className="text-center py-16 bg-slate-800/30 rounded-xl border border-dashed border-slate-700">
           <Package className="w-16 h-16 text-slate-600 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-slate-400">暂无道具凭证模板</h3>
@@ -426,9 +517,16 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
                         <Edit3 className="w-4 h-4" />
                       </button>
                       <button
-                        onClick={() => setShowMintForm({ template })}
+                        onClick={() => {
+                          if (voteMode) {
+                            setProposalCreateMintTemplate({ templateId: template.id, templateName: template.name });
+                            setShowProposalModal(true);
+                          } else {
+                            setShowMintForm({ template });
+                          }
+                        }}
                         className="p-2 rounded-lg text-slate-400 hover:text-cyan-400 hover:bg-slate-700 transition-colors"
-                        title="铸造凭证"
+                        title={voteMode ? '发起铸造提案' : '铸造凭证'}
                       >
                         <Database className="w-4 h-4" />
                       </button>
@@ -702,6 +800,31 @@ const ItemVoucherManager: React.FC<ItemVoucherManagerProps> = ({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ============ 提案创建弹窗 ============ */}
+      <AnimatePresence>
+        {showProposalModal && selectedGameId && (
+          <GameProposalCreateModal
+            gameId={selectedGameId}
+            gameName={selectedGame?.name || ''}
+            currentUserId={currentUserId}
+            currentUserName={currentUsername}
+            userStakeholderType={getUserStakeholderType()}
+            initialProposalType={proposalCreateMintTemplate ? GameProposalType.MINT_ITEM : undefined}
+            initialMintTemplate={proposalCreateMintTemplate}
+            onClose={() => {
+              setShowProposalModal(false);
+              setProposalCreateMintTemplate(null);
+            }}
+            onCreated={() => {
+              setProposalCreateMintTemplate(null);
+              refreshTemplates();
+            }}
+          />
+        )}
+      </AnimatePresence>
+    </>
+  )}
     </div>
   );
 };

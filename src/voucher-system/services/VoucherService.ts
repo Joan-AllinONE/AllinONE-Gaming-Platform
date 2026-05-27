@@ -113,7 +113,9 @@ export class VoucherService {
       ? VoucherSourceType.ALGORITHM
       : metaSourceType === VoucherSourceType.ITEM
         ? VoucherSourceType.ITEM
-        : VoucherSourceType.INSTANT;
+        : metaSourceType === VoucherSourceType.VOTE
+          ? VoucherSourceType.VOTE
+          : VoucherSourceType.INSTANT;
 
     // 创建凭证
     const voucher: Voucher = {

@@ -998,12 +998,14 @@ export default function GameStore() {
                             <span className="text-xs text-slate-500">{item.pricing.currency}</span>
                           </div>
                           {item.supplyPolicy === 'limited' && (
-                            <span className={`text-xs ${
-                              item.totalSupply && (item.totalSupply - item.mintedCount) > 0
-                                ? 'text-green-400' : 'text-red-400'
-                            }`}>
-                              剩余: {Math.max(0, (item.totalSupply || 0) - item.mintedCount)}
-                            </span>
+                            (() => {
+                              const poolCount = voucherItemService.getPoolItemVoucherCount(item.id);
+                              return (
+                                <span className={`text-xs ${poolCount > 0 ? 'text-green-400' : 'text-red-400'}`}>
+                                  剩余: {poolCount}
+                                </span>
+                              );
+                            })()
                           )}
                         </div>
 
@@ -1061,7 +1063,7 @@ export default function GameStore() {
                           className={`w-full py-3 rounded-lg font-medium transition-all flex items-center justify-center gap-2 ${
                             purchaseState.success && purchaseState.productId === item.id
                               ? 'bg-green-600 text-white'
-                              : item.supplyPolicy === 'limited' && item.totalSupply && item.mintedCount >= item.totalSupply
+                              : item.supplyPolicy === 'limited' && voucherItemService.getPoolItemVoucherCount(item.id) === 0
                                 ? 'bg-slate-600 text-slate-400 cursor-not-allowed'
                                 : 'bg-cyan-600 hover:bg-cyan-700 text-white disabled:bg-slate-600'
                           }`}
@@ -1076,7 +1078,7 @@ export default function GameStore() {
                               <i className="fa-solid fa-check"></i>
                               购买成功!
                             </>
-                          ) : item.supplyPolicy === 'limited' && item.totalSupply && item.mintedCount >= item.totalSupply ? (
+                          ) : item.supplyPolicy === 'limited' && voucherItemService.getPoolItemVoucherCount(item.id) === 0 ? (
                             <>
                               <i className="fa-solid fa-times"></i>
                               已售罄
