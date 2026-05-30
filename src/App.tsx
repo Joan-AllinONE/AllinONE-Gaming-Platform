@@ -14,9 +14,6 @@ import GameStoreDetail from "@/pages/GameStoreDetail";
 import ComputingPowerPageSimple from "@/pages/ComputingPowerPageSimple";
 import FundPool from "@/pages/FundPool";
 import FundPoolDemo from "@/pages/FundPoolDemo";
-import BlogCenter from "@/pages/BlogCenter";
-import BlogDetail from "@/pages/BlogDetail";
-import BlogEditor from "@/pages/BlogEditor";
 import PlatformManagement from "@/pages/PlatformManagement";
 import About from "@/pages/About";
 import CommunityRewards from "@/pages/CommunityRewards";
@@ -25,7 +22,6 @@ import TradingSystem from "@/pages/TradingSystem";
 import { AuthProvider } from '@/contexts/authContext';
 import { ComputingPowerProvider } from '@/contexts/ComputingPowerContext';
 import { UserDataProvider } from '@/contexts/UserDataContext';
-import { BlogProvider } from '@/contexts/BlogContext';
 import { PlatformManagementProvider } from '@/contexts/PlatformManagementContext';
 import { LanguageProvider } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -42,7 +38,6 @@ export default function App() {
     <AuthProvider>
       <ComputingPowerProvider>
         <UserDataProvider>
-          <BlogProvider>
             <PlatformManagementProvider>
             {/* 自动初始化 New Day 集成 */}
             <NewDayIntegrationInit autoLogin={true} autoSyncInterval={30000} />
@@ -65,10 +60,6 @@ export default function App() {
           <Route path="/game-store/store/:storeId" element={<GameStoreDetail />} />
           <Route path="/fund-pool" element={<FundPool />} />
           <Route path="/fund-pool-demo" element={<FundPoolDemo />} />
-          <Route path="/blog-center" element={<BlogCenter />} />
-          <Route path="/blog/:id" element={<BlogDetail />} />
-          <Route path="/blog/create" element={<BlogEditor />} />
-          <Route path="/blog/edit/:id" element={<BlogEditor />} />
           <Route path="/platform-management" element={<PlatformManagement />} />
           <Route path="/about" element={<About />} />
           <Route path="/community-rewards" element={<CommunityRewards />} />
@@ -80,7 +71,6 @@ export default function App() {
           <Route path="/voucher-system" element={<VoucherSystemPage />} />
             </Routes>
             </PlatformManagementProvider>
-          </BlogProvider>
         </UserDataProvider>
       </ComputingPowerProvider>
     </AuthProvider>

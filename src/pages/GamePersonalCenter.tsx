@@ -4,11 +4,9 @@ import { marketplaceService } from '@/services/marketplaceService';
 import { MarketItem, Transaction } from '@/types/marketplace';
 import { useWallet } from '@/hooks/useWallet';
 import { useUserData } from '@/contexts/UserDataContext';
-import { useBlog } from '@/contexts/BlogContext';
 import { TeamCenter } from '../components/TeamCenter';
 import EconomicSystemMonitor from '../components/EconomicSystemMonitor';
 import CommissionDisplay from '../components/CommissionDisplay';
-import BlogManager from '../components/BlogManager';
 import CrossGameInventory from '../components/CrossGameInventory';
 import oCoinService from '@/services/oCoinService';
 import { walletService } from '@/services/walletService';
@@ -43,7 +41,6 @@ const GamePersonalCenter: React.FC = () => {
   const { lang } = useLanguage();
   const dict = getDict(lang);
   const { userData, updateUserAssets, refreshUserData } = useUserData();
-  const { fetchUserPosts } = useBlog();
   const [activeTab, setActiveTab] = useState('inventory');
   const [activeSubTab, setActiveSubTab] = useState('purchases');
   const [showSettingsDropdown, setShowSettingsDropdown] = useState(false);
@@ -455,13 +452,6 @@ const GamePersonalCenter: React.FC = () => {
     }
   };
   
-  // 当切换到博客标签时加载用户博客
-  useEffect(() => {
-    if (activeTab === 'blog') {
-      fetchUserPosts();
-    }
-  }, [activeTab, fetchUserPosts]);
-
   const loadUserData = async () => {
     try {
       // 使用正确的方法名获取用户库存和交易记录
@@ -1573,12 +1563,6 @@ const GamePersonalCenter: React.FC = () => {
             )}
 
 
-
-            {activeTab === 'blog' && (
-              <div>
-                <BlogManager />
-              </div>
-            )}
 
             {activeTab === 'vote' && (
               <div>
