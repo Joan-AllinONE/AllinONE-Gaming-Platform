@@ -7,7 +7,8 @@ import "./index.css";
 import { initCloudBase } from "./services/cloudbase.ts";
 import { initializeSkills } from "./skills/index.ts";
 
-const basename = '/AllinONE-Gaming-Platform';
+// CloudBase 部署用 / ，GitHub Pages 用 /AllinONE-Gaming-Platform
+const basename = import.meta.env.VITE_BASE_URL || '/';
 
 // 初始化 CloudBase（不阻塞应用启动）
 initCloudBase().catch((err) => {

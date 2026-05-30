@@ -12,8 +12,13 @@ function getPlugins() {
   return plugins;
 }
 
+function getBaseUrl() {
+  // CloudBase 部署用 / ，GitHub Pages 用 /AllinONE-Gaming-Platform/
+  return process.env.VITE_BASE_URL || '/';
+}
+
 export default defineConfig({
-  base: "/AllinONE-Gaming-Platform/",
+  base: getBaseUrl(),
   plugins: getPlugins(),
   resolve: {
     alias: {
