@@ -10,6 +10,7 @@
     "build:client": "vite build --outDir dist/static",
     "build": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\" && npm run build:client",
     "setup:db": "node scripts/setup-database.js",
+    "db:init": "node cloudfunctions/db_init/init.cjs",
     "start": "node server.js",
     "deploy": "npm run build:client && gh-pages -d dist/static"
   },
@@ -35,6 +36,7 @@
     "zod": "^3.24.2"
   },
   "devDependencies": {
+    "@cloudbase/node-sdk": "^3.18.1",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",
     "@vitejs/plugin-react": "^4.3.4",
