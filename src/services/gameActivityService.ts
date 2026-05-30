@@ -1,10 +1,8 @@
-import { fundPoolService } from './fundPoolService';
-import { 
-  GameActivityData, 
-  PlayerActivityStats, 
-  ComputingPowerBreakdown, 
-  NetworkActivityData 
-} from '@/types/computing';
+// MVP v1.0: computing types removed, stubbed
+type GameActivityData = any;
+type PlayerActivityStats = any;
+type ComputingPowerBreakdown = any;
+type NetworkActivityData = any;
 
 class GameActivityService {
   private activities: GameActivityData[] = [];
@@ -66,12 +64,7 @@ class GameActivityService {
     
     // 同步更新钱包中的算力和游戏币
     try {
-      const { walletService } = await import('./walletService');
-      await walletService.addGameReward(
-        activity.computingPowerEarned || 0,
-        activity.gameCoinsEarned || 0,
-        activity.gameId
-      );
+      // MVP v1.0: walletService removed, wallet sync disabled
     } catch (error) {
       console.warn('同步钱包数据失败:', error);
     }
@@ -250,11 +243,11 @@ class GameActivityService {
   // 获取全网活动数据
   async getNetworkActivityData(): Promise<NetworkActivityData> {
     try {
-      // 导入模拟数据生成器
-      const { generateMockNetworkActivityData } = await import('@/data/mockComputingData');
-      
-      // 生成模拟数据
-      return generateMockNetworkActivityData();
+      // MVP v1.0: mock data removed, returning empty defaults
+      return {
+        totalActivePlayers: 0, totalTransactions: 0, totalVolume: 0,
+        averageSessionTime: 0, topGames: [], timestamp: Date.now()
+      } as any;
     } catch (error) {
       console.error('获取全网活动数据失败:', error);
       

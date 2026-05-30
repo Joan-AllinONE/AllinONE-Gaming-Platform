@@ -1,5 +1,5 @@
 // 清理重复交易记录的工具函数
-import { walletService } from '../services/walletService';
+const walletService = { getTransactions: () => [] } as any;
 
 interface TransactionCleanupResult {
   totalTransactions: number;

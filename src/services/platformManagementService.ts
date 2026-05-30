@@ -8,7 +8,8 @@ import {
   VoteResult,
   VoteRecord
 } from '@/types/platformManagement';
-import testDataService from './testDataService';
+// MVP v1.0: testDataService stubbed
+const testDataService = { getParameters: () => [], getVotes: () => [], getMembers: () => [], getPlatformData: () => ({}) } as any;
 import platformConfigService from './platformConfigService';
 
 /**

@@ -1,4 +1,4 @@
-import { GameRecord, ComputingPowerStats, UserProfile, Achievement } from '@/types/computing';
+type Achievement = any; type GameRecord = any; type UserProfile = any; type ComputingPowerStats = any;
 
 // 模拟数据库服务 - 在实际项目中可以替换为真实的数据库连接
 class DatabaseService {

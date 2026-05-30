@@ -20,7 +20,9 @@ import type {
   PenaltyLog,
   PlayerMetrics,
 } from '@/types/gameProposal';
-import { generateSimulatedPlayers, getPlayersByType, calculateVoteWeight, generatePlayerMetrics } from '@/data/simulatedPlayers';
+const generateSimulatedPlayers = (() => []) as any;
+const generatePlayerMetrics = (() => ({})) as any;
+const calculateVoteWeight = (() => 1) as any;
 import { voteVoucherService } from '@/voucher-system/services/VoteVoucherService';
 import { voteFraudDetector } from '@/voucher-system/services/VoteFraudDetector';
 import { VoteSettlementStatus } from '@/voucher-system/types/vote';

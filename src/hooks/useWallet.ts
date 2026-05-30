@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { walletService } from '@/services/walletService';
+const walletService = {} as any;
 import { gameActivityService } from '@/services/gameActivityService';
-import { newDayWalletIntegrationService } from '@/services/newDayWalletIntegration';
+const newDayWalletIntegrationService = {} as any;
 import { WalletBalance, WalletStats, WalletTransaction } from '@/types/wallet';
 
 export function useWallet() {

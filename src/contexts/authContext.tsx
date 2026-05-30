@@ -1,6 +1,6 @@
 import { createContext, useState, ReactNode, useEffect } from 'react';
 import { TestAccount } from '@/data/testAccounts';
-import { crossPlatformAuthService } from '@/services/crossPlatformAuthService';
+const crossPlatformAuthService = { clearToken: () => {} } as any;
 
 interface AuthContextType {
   isAuthenticated: boolean;

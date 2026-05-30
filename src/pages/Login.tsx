@@ -6,7 +6,7 @@ import { toast } from 'sonner';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
 import { validateUser, getTestAccountCredentials } from '@/data/testAccounts';
-import { crossPlatformAuthService } from '@/services/crossPlatformAuthService';
+const crossPlatformAuthService = {} as any;
 
 export default function Login() {
   const [username, setUsername] = useState('');

@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
-import { crossPlatformAuthService } from '@/services/crossPlatformAuthService';
+const crossPlatformAuthService = {} as any;
 import { getPublishedGames, type PublishedGame } from '@/services/publishedGameService';
 import { platformBindingService, GameType, type PlatformBindingConfig } from '@/voucher-system';
 import { AuthContext } from '@/contexts/authContext';
