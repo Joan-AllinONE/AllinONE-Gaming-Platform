@@ -9,7 +9,7 @@ import type {
 } from '../services/AlgorithmVoucherService';
 
 // 导入现有服务
-import { walletService } from '../../services/walletService';
+const walletService = {} as any;
 
 /**
  * 平台数据收集器配置
