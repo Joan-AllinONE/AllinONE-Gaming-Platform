@@ -1,6 +1,5 @@
 import { Routes, Route } from "react-router-dom";
 import Home from "@/pages/Home";
-import TestPage from "@/pages/TestPage";
 import Login from "@/pages/Login";
 import Register from "@/pages/Register";
 import GameCenter from "@/pages/GameCenter";
@@ -13,14 +12,12 @@ import OfficialStore from "@/pages/OfficialStore";
 import GameStoreCenter from "@/pages/GameStoreCenter";
 import GameStoreDetail from "@/pages/GameStoreDetail";
 import ComputingPowerPageSimple from "@/pages/ComputingPowerPageSimple";
-import TestAccounts from "@/pages/TestAccounts";
 import FundPool from "@/pages/FundPool";
 import FundPoolDemo from "@/pages/FundPoolDemo";
 import BlogCenter from "@/pages/BlogCenter";
 import BlogDetail from "@/pages/BlogDetail";
 import BlogEditor from "@/pages/BlogEditor";
 import PlatformManagement from "@/pages/PlatformManagement";
-import PlatformManagementTest from "@/pages/PlatformManagementTest";
 import About from "@/pages/About";
 import CommunityRewards from "@/pages/CommunityRewards";
 import OpenEconomy from "@/pages/OpenEconomy";
@@ -34,9 +31,7 @@ import { LanguageProvider } from '@/contexts/LanguageContext';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import NewDayIntegrationInit from '@/components/NewDayIntegrationInit';
 import VoteNotifications from '@/components/voucher-system/VoteNotifications';
-import NewDayIntegrationTest from '@/pages/NewDayIntegrationTest';
 import PublishingCenter from '@/pages/PublishingCenter';
-import SkillWizardPage from '@/pages/SkillWizardPage';
 import GamePlay from '@/pages/GamePlay';
 import GameStore from '@/pages/GameStore';
 import VoucherSystemPage from '@/pages/VoucherSystemPage';
@@ -56,7 +51,6 @@ export default function App() {
             <LanguageSwitcher />
             <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/test" element={<TestPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/game-center" element={<GameCenter />} />
@@ -71,20 +65,16 @@ export default function App() {
           <Route path="/game-store/store/:storeId" element={<GameStoreDetail />} />
           <Route path="/fund-pool" element={<FundPool />} />
           <Route path="/fund-pool-demo" element={<FundPoolDemo />} />
-          <Route path="/test-accounts" element={<TestAccounts />} />
           <Route path="/blog-center" element={<BlogCenter />} />
           <Route path="/blog/:id" element={<BlogDetail />} />
           <Route path="/blog/create" element={<BlogEditor />} />
           <Route path="/blog/edit/:id" element={<BlogEditor />} />
           <Route path="/platform-management" element={<PlatformManagement />} />
-          <Route path="/platform-management-test" element={<PlatformManagementTest />} />
           <Route path="/about" element={<About />} />
           <Route path="/community-rewards" element={<CommunityRewards />} />
           <Route path="/open-economy" element={<OpenEconomy />} />
           <Route path="/trading-system" element={<TradingSystem />} />
-          <Route path="/newday-integration-test" element={<NewDayIntegrationTest />} />
           <Route path="/publishing-center" element={<PublishingCenter />} />
-          <Route path="/skill-wizard" element={<SkillWizardPage />} />
           <Route path="/game/:gameId" element={<GamePlay />} />
           <Route path="/game-store/:gameId" element={<GameStore />} />
           <Route path="/voucher-system" element={<VoucherSystemPage />} />
