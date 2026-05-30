@@ -10,9 +10,9 @@
  * - newDayGameCoins: New Day 游戏币
  * - computingPower: 算力
  * - aCoins: A币 (平台贡献奖励)
- * - oCoins: O币 (证券类型代币)
+ * @deprecated MVP v1.0 逐步移除 cash/oCoins/computingPower/newDayGameCoins
  */
-export type Currency = 'cash' | 'gameCoins' | 'newDayGameCoins' | 'computingPower' | 'aCoins' | 'oCoins';
+export type Currency = 'cash' | 'gameCoins' | 'newDayGameCoins' | 'computingPower' | 'aCoins';
 
 /**
  * 游戏币类型（用于下拉显示）

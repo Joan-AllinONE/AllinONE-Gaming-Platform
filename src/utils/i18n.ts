@@ -166,7 +166,6 @@ export const getDict = (lang: Lang): Dict => {
     nav: {
       overview: lang === 'zh' ? '整体概览' : 'Overview',
       acoin: lang === 'zh' ? 'A币' : 'A Coin',
-      ocoin: lang === 'zh' ? 'O币' : 'O Coin',
       example: lang === 'zh' ? '示例计算' : 'Examples',
       others: lang === 'zh' ? '其他奖励' : 'Other Rewards',
     },
@@ -174,15 +173,12 @@ export const getDict = (lang: Lang): Dict => {
       title: lang === 'zh' ? '社区奖励系统概览' : 'Overview of Community Rewards',
       p:
         lang === 'zh'
-          ? '社区奖励包含：每日结算发放的 A币；对平台贡献者提供的平台管理奖励（现金分红与具期权属性的 O币）；面向普通玩家的算力、游戏币等奖励。 目前由平台统一制定规则并执行发放，未来将通过社区治理与技术升级，进一步扩大奖励的范围、体量与多样性。'
-          : 'Community rewards include: daily-settled A Coin; platform management rewards for contributors (cash dividends and option-like O Coin); and rewards such as computing power and in-game currency for regular players. Rules are currently set and executed uniformly by the platform; in the future, community governance and tech upgrades will expand the scope, scale, and diversity of rewards.',
+          ? '社区奖励包含：每日结算发放的 A币；面向普通玩家的算力、游戏币等奖励。 目前由平台统一制定规则并执行发放，未来将通过社区治理与技术升级，进一步扩大奖励的范围、体量与多样性。'
+          : 'Community rewards include: daily-settled A Coin; and rewards such as computing power and in-game currency for regular players. Rules are currently set and executed uniformly by the platform; in the future, community governance and tech upgrades will expand the scope, scale, and diversity of rewards.',
       cards: {
         acoinTitle: lang === 'zh' ? 'A币 · 平台通用币' : 'A Coin · Platform Utility Coin',
         acoinDesc:
           lang === 'zh' ? '按日结算、用于替代现金奖励发放，锚定平台收入转化。' : 'Settled daily, used in place of cash rewards, anchored to platform revenue conversion.',
-        ocoinTitle: lang === 'zh' ? 'O币 · 期权与价值' : 'O Coin · Options & Value',
-        ocoinDesc:
-          lang === 'zh' ? '面向开发者/管理者/投资者，具价值波动与分红权属性。' : 'For developers/managers/investors, with value fluctuation and dividend rights.',
         powerTitle: lang === 'zh' ? '算力与游戏币' : 'Computing Power & Game Coins',
         powerDesc:
           lang === 'zh' ? '零门槛参与，通过游戏表现与活跃度获取日常奖励。' : 'Zero barrier participation; earn daily rewards via gameplay and activity.',
@@ -197,34 +193,12 @@ export const getDict = (lang: Lang): Dict => {
         lang === 'zh' ? '额度逻辑：额度本身不具备价值，收入转化为 A币发放后才产生价值。' : 'Quota logic: quota itself has no value; value arises when revenue is converted to A Coin and issued.',
       ],
     },
-    ocoin: {
-      title: lang === 'zh' ? 'O币（期权型代币）' : 'O Coin (Option-like Token)',
-      p:
-        lang === 'zh'
-          ? '平台收入的其余部分（当前为 60%）扣除成本后形成工资与分红资金池，由平台管理者与玩家社区代表共同治理。除获得 A币收益外，贡献者还可获得分红权与 O币（合称“绩效包”）。'
-          : 'The remaining platform income (currently 60%), after costs, forms payroll and dividend pools governed jointly by platform managers and community representatives. In addition to A Coin, contributors receive dividend rights and O Coin (collectively the “performance package”).',
-      bullets: [
-        lang === 'zh' ? '定位：代表平台价值/市值的期权型代币，具备价值波动与分红权。' : 'Positioning: option-like token representing platform value/market cap, with value fluctuation and dividend rights.',
-        lang === 'zh' ? '对象：奖励平台的开发者、管理者与投资者，推动“共建共享共治”。' : 'Recipients: developers, managers, and investors; driving co-construction, sharing, and co-governance.',
-        lang === 'zh' ? '总量：固定 10 亿；未分发时为限制性状态且价值为 0，分发后可按合规在场内外交易。' : 'Supply: fixed at 1 billion; restricted and zero value before distribution; tradable in/out of market per compliance after distribution.',
-        lang === 'zh' ? '分红权：面向历史/当期绩效；O币更侧重未来绩效，二者共同构成绩效回报。' : 'Dividend rights: for past/current performance; O Coin focuses on future performance—together forming performance returns.',
-      ],
-    },
     example: {
       title: lang === 'zh' ? '示例计算' : 'Example Calculation',
       aDailyTitle: lang === 'zh' ? 'A币日结示例' : 'A Coin Daily Settlement Example',
       assumptions: lang === 'zh' ? '假设条件：' : 'Assumptions:',
       calc: lang === 'zh' ? '计算过程：' : 'Calculation:',
       result: lang === 'zh' ? '最终结果：用户A当日获得 30 A币 奖励（价值约 30 元）' : 'Result: User A receives 30 A Coin for the day (worth ~30 RMB)',
-      performanceTitle: lang === 'zh' ? '绩效包示例（O币/分红）' : 'Performance Package Example (O Coin/Dividends)',
-      performanceP:
-        lang === 'zh'
-          ? '例如：某玩家创建一款小游戏，新增 1000 名玩家、带来 10000 元收入。 平台委员会奖励其 1% 平台净收入 + 1000 个 O币，玩家社区代表额外按“每增加 1 元收入分配 5%”激励。'
-          : 'Example: A player creates a mini-game, adds 1,000 players and 10,000 RMB revenue. The committee awards 1% of net platform income + 1,000 O Coin; community representatives additionally allocate 5% for each 1 RMB increase.',
-      formula: lang === 'zh' ? '绩效包 = 1% ×（平台收入 - 运营成本） + 5% ×（游戏收入T - 游戏收入T-1） + 1000 个 O币' : 'Performance package = 1% × (Platform income − Operating costs) + 5% × (Game revenue T − Game revenue T−1) + 1,000 O Coin',
-      exampleNote: lang === 'zh' ? '若当期平台净收入 = 100,000 元，则：' : 'If current net platform income = 100,000 RMB:',
-      cashLine: lang === 'zh' ? '现金 = 100,000 × 1% + 10,000 × 5% = 1,000 + 500 = 1,500 元' : 'Cash = 100,000 × 1% + 10,000 × 5% = 1,000 + 500 = 1,500 RMB',
-      bonusLine: lang === 'zh' ? '并获得 1000 个 O币；年终分红 = 1000 / O币总量 × 总分红金额' : 'Plus 1,000 O Coin; year-end dividend = 1000 / total O Coin × total dividend amount',
       assumptionsBullets: [
         lang === 'zh' ? '平台当日净收入：1000 元' : 'Platform net income of the day: 1000 RMB',
         lang === 'zh' ? 'A币发放比例：40% → 400 A币' : 'A Coin distribution ratio: 40% → 400 A Coin',
@@ -263,17 +237,17 @@ export const getDict = (lang: Lang): Dict => {
       s3Badge: lang === 'zh' ? '提高 A币日结占比' : 'Increase A Coin daily share',
       s4Title: lang === 'zh' ? '贡献开发/治理' : 'Contribute Dev/Governance',
       s4Desc: lang === 'zh' ? '提交代码、内容或参与治理投票' : 'Submit code/content or join governance voting',
-      s4Badge: lang === 'zh' ? '获得 O币/分红权' : 'Gain O Coin/Dividend rights',
+      s4Badge: lang === 'zh' ? '获得分红权' : 'Gain dividend rights',
       s5Title: lang === 'zh' ? '每日结算' : 'Daily Settlement',
       s5Desc: lang === 'zh' ? '按贡献权重自动结算' : 'Auto-settlement by contribution weight',
       s5Badge: lang === 'zh' ? '领取 A币（如示例：30 A币）' : 'Receive A Coin (e.g., 30 A Coin)',
       s6Title: lang === 'zh' ? '使用奖励' : 'Use Rewards',
-      s6Desc: lang === 'zh' ? '用 A币结算、购买道具；O币参与分红或流通' : 'Use A Coin for settlement, buy items; O Coin for dividends or circulation',
+      s6Desc: lang === 'zh' ? '用 A币结算、购买道具' : 'Use A Coin for settlement, buy items',
       s6Badge: lang === 'zh' ? '娱乐更有价值' : 'Entertainment with more value',
       hint:
         lang === 'zh'
-          ? '提示：A币日结与占比受平台收入与全网贡献影响；O币/分红权面向平台贡献者，遵循合规规则与治理流程。'
-          : 'Hint: A Coin daily settlement and share depend on platform income and network contribution; O Coin/dividend rights target platform contributors and follow compliant rules and governance.',
+          ? '提示：A币日结与占比受平台收入与全网贡献影响。'
+          : 'Hint: A Coin daily settlement and share depend on platform income and network contribution.',
     },
     footer: { copyright: '© 2025 AllinONE' },
   };
@@ -320,36 +294,19 @@ export const getDict = (lang: Lang): Dict => {
     },
     governance: {
       title: lang === 'zh' ? '开放的社区管理：平台管理系统' : 'Open Community Management: Platform Governance',
-      p1:
-        lang === 'zh'
-          ? '当下 A币与 O币系统部分关键参数仍为人为拟定。我们以数据为基础建立数学模型辅助决策。平台管理系统拥有关键参数设定权限，采用少数权限成员投票修改的方式推进治理与优化。'
-          : 'Currently, some key parameters of A Coin and O Coin are still manually set. We build mathematical models on data to assist decisions. The governance system has authority to set parameters and advances optimization via voting by authorized members.',
-      p2:
-        lang === 'zh'
-          ? '当前系统支持投票与参数修改，并展示关键数据：A币余额、O币余额与价格、全网算力、收入支出、游戏数据、玩家人数等。投票席位 11 人：5 名平台管理者 + 5 名玩家社区代表 + 1 名创始人。一般情况下投票权平等，创始人保留一票否决权。决议需半数以上通过并由创始人执行参数修改。'
-          : 'The system supports voting and parameter changes, and displays key data: A Coin balance, O Coin balance and price, network computing power, income/expenditure, game data, player counts, etc. There are 11 seats: 5 platform managers + 5 community representatives + 1 founder. Votes are equal in general; the founder holds veto power. Decisions require a majority and are executed by the founder.',
     },
     params: {
       title: lang === 'zh' ? '关键参数（示例）' : 'Key Parameters (Examples)',
       leftTitle: lang === 'zh' ? '分配与权重' : 'Allocation & Weights',
       leftBullets: [
         lang === 'zh' ? 'A币各部分分配权重' : 'Allocation weights for A Coin',
-        lang === 'zh' ? 'O币各部分分配权重' : 'Allocation weights for O Coin',
         lang === 'zh' ? '收入分配比例、分红权重、兑换比例' : 'Income distribution ratio, dividend weights, exchange ratio',
       ],
       rightTitle: lang === 'zh' ? '展示数据' : 'Displayed Data',
       rightBullets: [
-        lang === 'zh' ? 'A币余额、O币余额与价格' : 'A Coin balance, O Coin balance & price',
         lang === 'zh' ? '全网算力、收入支出' : 'Network computing power, income & expenditure',
         lang === 'zh' ? '游戏数据、玩家人数等' : 'Game data, player counts, etc.',
       ],
-    },
-    example: {
-      title: lang === 'zh' ? '投票示例：O币分配与分红权重' : 'Voting Example: O Coin Allocation & Dividend Weights',
-      p:
-        lang === 'zh'
-          ? '通过平台管理系统，成员就 O币的分配权重与分红权重进行投票。O币面向“未来绩效”，分红权面向“历史/当期绩效”，二者共同构成绩效回报。议案需半数以上通过，由创始人执行参数变更。管理者可在系统内直接完成操作并全程留痕。'
-          : 'Via the governance system, members vote on O Coin allocation and dividend weights. O Coin targets “future performance”, while dividends target “past/current performance”, together forming performance returns. Proposals require majority approval and are executed by the founder, with full audit trail.',
     },
     footer: { copyright: '© 2025 AllinONE' },
   };
@@ -627,13 +584,11 @@ export const getDict = (lang: Lang): Dict => {
         gameCoins: lang === 'zh' ? '游戏币' : 'Game Coins',
         computingPower: lang === 'zh' ? '算力' : 'Computing Power',
         aCoins: lang === 'zh' ? 'A币' : 'A Coin',
-        oCoins: lang === 'zh' ? 'O币' : 'O Coin',
         locked: lang === 'zh' ? '锁定' : 'Locked',
       },
       actions: {
         recharge: { title: lang === 'zh' ? '充值' : 'Recharge', subtitle: lang === 'zh' ? '增加现金余额' : 'Increase cash balance' },
         exchange: { title: lang === 'zh' ? '兑换' : 'Exchange', subtitle: lang === 'zh' ? '货币互相兑换' : 'Convert between currencies' },
-        tradeOCoin: { title: lang === 'zh' ? '交易O币' : 'Trade O Coin', subtitle: lang === 'zh' ? '买入 • 出售 • 即时交易' : 'Buy • Sell • Instant trade' },
       }
     },
     walletDetails: {
@@ -644,7 +599,6 @@ export const getDict = (lang: Lang): Dict => {
         gameCoin: lang === 'zh' ? '游戏币交易记录' : 'Game Coin Transactions',
         computingPower: lang === 'zh' ? '算力交易记录' : 'Computing Power Transactions',
         aCoins: lang === 'zh' ? 'A币交易记录' : 'A Coin Transactions',
-        oCoins: lang === 'zh' ? 'O币交易记录' : 'O Coin Transactions',
       },
       tags: {
         income: lang === 'zh' ? '收入' : 'Income',
@@ -655,7 +609,6 @@ export const getDict = (lang: Lang): Dict => {
         gameCoin: lang === 'zh' ? '暂无游戏币交易记录' : 'No game coin transactions',
         computingPower: lang === 'zh' ? '暂无算力交易记录' : 'No computing power transactions',
         aCoins: lang === 'zh' ? '暂无A币交易记录' : 'No A Coin transactions',
-        oCoins: lang === 'zh' ? '暂无O币交易记录' : 'No O Coin transactions',
       },
       footer: {
         showRecentPrefix: lang === 'zh' ? '显示最近 ' : 'Showing last ',
@@ -680,7 +633,6 @@ export const getDict = (lang: Lang): Dict => {
           gameCoins: lang === 'zh' ? '游戏币' : 'Game Coins',
           computingPower: lang === 'zh' ? '算力' : 'Computing Power',
           aCoins: lang === 'zh' ? 'A币' : 'A Coin',
-          oCoins: lang === 'zh' ? 'O币' : 'O Coin',
         },
         calculating: lang === 'zh' ? '计算中...' : 'Calculating...',
       },
@@ -763,45 +715,6 @@ export const getDict = (lang: Lang): Dict => {
           computingPower: lang === 'zh' ? '算力' : 'Computing Power',
           aCoins: lang === 'zh' ? 'A币' : 'A Coin',
         },
-      },
-      ocoin: {
-        titles: {
-          buy: lang === 'zh' ? '购买O币' : 'Buy O Coin',
-          sell: lang === 'zh' ? '出售O币' : 'Sell O Coin',
-        },
-        market: {
-          currentPrice: lang === 'zh' ? '当前价格' : 'Current Price',
-          change24h: lang === 'zh' ? '24小时涨跌' : '24h Change',
-        },
-        balances: {
-          cash: lang === 'zh' ? '现金余额' : 'Cash Balance',
-          ocoin: lang === 'zh' ? 'O币余额' : 'O Coin Balance',
-        },
-        quantity: {
-          buyLabel: lang === 'zh' ? '购买数量' : 'Buy Quantity',
-          sellLabel: lang === 'zh' ? '出售数量' : 'Sell Quantity',
-          buyPlaceholder: lang === 'zh' ? '请输入购买数量' : 'Enter buy quantity',
-          sellPlaceholder: lang === 'zh' ? '请输入出售数量' : 'Enter sell quantity',
-        },
-        preview: {
-          title: lang === 'zh' ? '交易预览' : 'Trade Preview',
-          qty: lang === 'zh' ? '数量' : 'Quantity',
-          unitPrice: lang === 'zh' ? '单价' : 'Unit Price',
-          total: lang === 'zh' ? '总计' : 'Total',
-        },
-        tips: {
-          title: lang === 'zh' ? '交易提示' : 'Trading Tips',
-          line1: lang === 'zh' ? '• O币价格会根据市场供需波动' : '• O Coin price fluctuates with market supply/demand',
-          line2: lang === 'zh' ? '• O币持有者可享有平台分红权' : '• O Coin holders may enjoy dividend rights',
-          line3: lang === 'zh' ? '• 交易完成后立即生效' : '• Trades take effect immediately after completion',
-        },
-        actions: {
-          confirmBuy: lang === 'zh' ? '确认购买' : 'Confirm Buy',
-          confirmSell: lang === 'zh' ? '确认出售' : 'Confirm Sell',
-          cancel: lang === 'zh' ? '取消' : 'Cancel',
-          toggleToSell: lang === 'zh' ? '切换到出售O币' : 'Switch to Sell O Coin',
-          toggleToBuy: lang === 'zh' ? '切换到购买O币' : 'Switch to Buy O Coin',
-        }
       }
     },
     right: {
@@ -816,9 +729,6 @@ export const getDict = (lang: Lang): Dict => {
         aCoinBalance: lang === 'zh' ? 'A币余额' : 'A Coin Balance',
         aCoinCirculating: lang === 'zh' ? 'A币流通量' : 'A Coin Circulating',
         aCoinHolders: lang === 'zh' ? 'A币持有人' : 'A Coin Holders',
-        oCoinCirculating: lang === 'zh' ? 'O币流通量' : 'O Coin Circulating',
-        oCoinPrice: lang === 'zh' ? 'O币价格' : 'O Coin Price',
-        oCoinMarketCap: lang === 'zh' ? 'O币市值' : 'O Coin Market Cap',
         unitM: lang === 'zh' ? 'M' : 'M',
         unitWan: lang === 'zh' ? '万' : '10k',
       },

@@ -8,16 +8,14 @@ import { TeamCenter } from '../components/TeamCenter';
 import EconomicSystemMonitor from '../components/EconomicSystemMonitor';
 import CommissionDisplay from '../components/CommissionDisplay';
 import CrossGameInventory from '../components/CrossGameInventory';
-import oCoinService from '@/services/oCoinService';
 import { walletService } from '@/services/walletService';
 import platformConfigService from '@/services/platformConfigService';
 import { redeemCodeService } from '@/services/redeemCodeService';
-import { 
-  OCoinMarketData, 
-  OCoinUserBalance, 
-  OCoinTransaction, 
-  OCoinOption 
-} from '@/types/oCoin';
+// OCoin types removed - MVP v1.0
+type OCoinMarketData = any;
+type OCoinUserBalance = any;
+type OCoinTransaction = any;
+type OCoinOption = any;
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
 import { voucherService } from '@/voucher-system/services/VoucherService';
@@ -178,7 +176,7 @@ const GamePersonalCenter: React.FC = () => {
   const loadOCoinMarketData = async () => {
     try {
       // 从O币服务获取市场数据
-      const marketData = await oCoinService.getOCoinMarketData();
+      const marketData = Promise.resolve({ currentPrice: 0, totalSupply: 0, circulatingSupply: 0, marketCap: 0, priceHistory: [], allTimeHigh: 0, allTimeLow: 0, lastDividendDate: null, lastDividendPerCoin: 0, dividendPool: 0, totalDistributed: 0, totalLocked: 0, holdersCount: 0 } as any);
       setOCoinMarketData(marketData);
     } catch (error) {
       console.error('获取O币市场数据失败:', error);
@@ -211,8 +209,8 @@ const GamePersonalCenter: React.FC = () => {
     try {
       // 从O币服务获取用户持有数据
       const userId = 'current-user-id'; // 假设这是当前用户ID
-      const userBalance = await oCoinService.getUserBalance(userId);
-      const userOptions = await oCoinService.getUserOptions(userId);
+      const userBalance = Promise.resolve({ balance: 0, lockedBalance: 0, totalValue: 0, options: [], dividendRights: 0, accumulatedDividends: 0 } as any);
+      const userOptions = Promise.resolve([] as any);
       
       if (userBalance) {
         setOCoinHoldings({
@@ -227,7 +225,7 @@ const GamePersonalCenter: React.FC = () => {
             endDate: new Date(option.grantDate.getTime() + option.vestingPeriod * 24 * 60 * 60 * 1000),
             isFullyVested: option.isFullyVested
           })),
-          dividendRights: userBalance.dividendRights / oCoinService.getOCoinStats().totalSupply,
+          dividendRights: userBalance.dividendRights / { totalSupply: 1000000 } as any.totalSupply,
           lastDividend: userBalance.lastDividendAmount,
           totalDividendsReceived: userBalance.lastDividendAmount // 这里应该累计所有分红，但示例中只用最后一次
         });
@@ -297,7 +295,7 @@ const GamePersonalCenter: React.FC = () => {
     try {
       // 从O币服务获取交易记录
       const userId = 'current-user-id'; // 假设这是当前用户ID
-      const transactions = await oCoinService.getUserTransactions(userId);
+      const transactions = Promise.resolve([] as any);
       
       // 将OCoinTransaction类型转换为组件中使用的类型
       const formattedTransactions = transactions.map(tx => ({
@@ -382,7 +380,7 @@ const GamePersonalCenter: React.FC = () => {
         }
         
         // 调用O币服务购买O币
-        await oCoinService.purchaseOCoins(userId, amount, oCoinMarketData.currentPrice);
+        Promise.resolve({} as any);
       } else {
         // 检查O币余额是否足够
         if (oCoinHoldings.balance < amount) {
@@ -391,7 +389,7 @@ const GamePersonalCenter: React.FC = () => {
         }
         
         // 调用O币服务出售O币
-        await oCoinService.sellOCoins(userId, amount, oCoinMarketData.currentPrice);
+        Promise.resolve({} as any);
       }
       
       // 刷新数据

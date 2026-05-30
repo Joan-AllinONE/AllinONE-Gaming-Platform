@@ -13,7 +13,11 @@ import {
   SalaryPackageParams,
   SalaryPackageResult
 } from '@/types/fundPool';
-import * as oCoinService from './oCoinService';
+// MVP v1.0: OCoin removed, stubbed
+const oCoinService = {
+  getMarketData: async () => ({ currentPrice: 1 }),
+  getOCoinMarketData: async () => ({ currentPrice: 1 }),
+} as any;
 
 class FundPoolService {
   private transactionsStorageKey = 'fundPool_transactions';

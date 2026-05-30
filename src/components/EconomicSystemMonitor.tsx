@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WalletBalance } from '@/types/wallet';
 import { walletService } from '@/services/walletService';
-import oCoinService from '@/services/oCoinService';
 import { useLanguage } from '@/contexts/LanguageContext';
 import { getDict, t } from '@/utils/i18n';
 
@@ -26,15 +25,8 @@ const EconomicSystemMonitor: React.FC<EconomicSystemMonitorProps> = ({ wallet, o
     const calcTotals = async () => {
       try {
         setLoadingTotals(true);
-        // 安全获取 O 币市场数据，避免 .catch 链式在非 Promise 情况下报错
-        const marketPromise = (async () => {
-          try {
-            const data = await oCoinService.getOCoinMarketData();
-            return data;
-          } catch {
-            return { currentPrice: 1 } as any;
-          }
-        })();
+        // OCoin market data stubbed (MVP v1.0)
+        const marketPromise = Promise.resolve({ currentPrice: 1 } as any);
 
         const [transactions, rates, oMarket, stats] = await Promise.all([
           walletService.getTransactions(1000), // 尽量多取
@@ -71,15 +63,13 @@ const EconomicSystemMonitor: React.FC<EconomicSystemMonitorProps> = ({ wallet, o
             stats.totalIncome.cash +
             stats.totalIncome.gameCoins * rates.gameCoinsToRMB +
             stats.totalIncome.computingPower * rates.computingPowerToRMB +
-            stats.totalIncome.aCoins * aCoinRate +
-            stats.totalIncome.oCoins * oPrice;
+            stats.totalIncome.aCoins * aCoinRate;
 
           const sumExpenseRMB =
             stats.totalExpense.cash +
             stats.totalExpense.gameCoins * rates.gameCoinsToRMB +
             stats.totalExpense.computingPower * rates.computingPowerToRMB +
-            stats.totalExpense.aCoins * aCoinRate +
-            stats.totalExpense.oCoins * oPrice;
+            stats.totalExpense.aCoins * aCoinRate;
 
           income = Math.max(income, sumIncomeRMB);
           expense = Math.max(expense, sumExpenseRMB);

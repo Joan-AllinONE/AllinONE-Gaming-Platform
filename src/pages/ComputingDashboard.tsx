@@ -13,7 +13,7 @@ import {
   ComputingMarketData,
   NetworkActivityData
 } from '@/types/computing';
-import ComputingOCoinAnalytics from '@/components/ComputingOCoinAnalytics';
+const ComputingOCoinAnalytics = () => null; // MVP v1.0 stub - OCoin removed
 
 export default function ComputingDashboard() {
   const [economicData, setEconomicData] = useState<EconomicData | null>(null);

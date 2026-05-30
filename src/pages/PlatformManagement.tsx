@@ -6,7 +6,7 @@ import ParametersList from '@/components/platform/ParametersList';
 import VotesList from '@/components/platform/VotesList';
 import MembersList from '@/components/platform/MembersList';
 import CreateVoteModal from '@/components/platform/CreateVoteModal';
-import PerformanceManagement from '@/components/platform/PerformanceManagement';
+const PerformanceManagement = () => null; // MVP v1.0 stub - OCoin removed
 import { PlatformParameter } from '@/types/platformManagement';
 
 /**

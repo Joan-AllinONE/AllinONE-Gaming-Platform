@@ -7,7 +7,6 @@ export interface WalletBalance {
   newDayGameCoins: number; // New Day 游戏币余额
   computingPower: number; // 算力余额
   aCoins: number;         // A币余额（平台币）
-  oCoins: number;         // O币余额（证券类型代币）
   vouchers: number;       // 凭证余额（A币凭证总价值）- 向后兼容
   voucherCount: number;   // 凭证数量 - 向后兼容
   
@@ -36,7 +35,7 @@ export interface GameCoinsSummary {
 export interface WalletTransaction {
   id: string;
   type: 'income' | 'expense';
-  category: 'game_reward' | 'purchase' | 'trade' | 'recharge' | 'withdrawal' | 'computing_reward' | 'commission' | 'acoin_distribution' | 'ocoin_distribution' | 'ocoin_dividend' | 'ocoin_vesting' | 'exchange' | 'dividend';
+  category: 'game_reward' | 'purchase' | 'trade' | 'recharge' | 'withdrawal' | 'computing_reward' | 'commission' | 'acoin_distribution' | 'exchange' | 'dividend';
   amount: number;
   currency: Currency;
   description: string;
@@ -52,7 +51,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
   weeklyIncome: {
@@ -61,7 +59,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
   monthlyIncome: {
@@ -70,7 +67,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
 
@@ -81,7 +77,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
   weeklyExpense: {
@@ -90,7 +85,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
   monthlyExpense: {
@@ -99,7 +93,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
 
@@ -110,7 +103,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
   totalExpense: {
@@ -119,7 +111,6 @@ export interface WalletStats {
     newDayGameCoins: number;
     computingPower: number;
     aCoins: number;
-    oCoins: number;
     vouchers: number;
   };
 

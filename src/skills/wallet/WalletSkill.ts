@@ -35,7 +35,7 @@ const walletSkillDefinition: SkillDefinition = {
 
 // ==================== 辅助类型 ====================
 
-export type CurrencyType = 'cash' | 'gameCoins' | 'newDayGameCoins' | 'computingPower' | 'aCoins' | 'oCoins';
+export type CurrencyType = 'cash' | 'gameCoins' | 'newDayGameCoins' | 'computingPower' | 'aCoins';
 
 export interface TransferParams {
   toUserId: string;
@@ -672,7 +672,6 @@ export class WalletSkill extends BaseSkill {
           newDayGameCoins: 0,
           computingPower: 45230,
           aCoins: 15.67,
-          oCoins: 0,
           vouchers: 0,
           voucherCount: 0,
           // 双轨凭证系统字段
@@ -736,8 +735,6 @@ export class WalletSkill extends BaseSkill {
 
   private async calculateTotalValue(balance: WalletBalance): Promise<number> {
     const rates = this.getRates();
-    const oCoinPrice = 1; // 简化处理，实际应从服务获取
-
     // 双轨凭证系统价值计算
     const instantVoucherValue = (balance as any).instantVouchers || 0;
     const algorithmVoucherValue = (balance as any).algorithmVouchers || 0;
@@ -748,7 +745,6 @@ export class WalletSkill extends BaseSkill {
            (balance.newDayGameCoins * (rates.newDayGameCoinsToRMB || 0.01)) +
            (balance.computingPower * rates.computingPowerToRMB) +
            (balance.aCoins * 1.0) +
-           (balance.oCoins * oCoinPrice) +
            (totalVoucherValue * 1.0); // 凭证按1:1计算价值
   }
 
@@ -759,7 +755,6 @@ export class WalletSkill extends BaseSkill {
       newDayGameCoins: { cash: rates.newDayGameCoinsToRMB, gameCoins: rates.newDayToGameCoins },
       computingPower: { cash: rates.computingPowerToRMB },
       aCoins: { cash: 1 },
-      oCoins: { cash: 1 },
       cash: { gameCoins: 1 / rates.gameCoinsToRMB, computingPower: 1 / rates.computingPowerToRMB },
     };
 
@@ -838,7 +833,7 @@ export class WalletSkill extends BaseSkill {
   }
 
   private recomputeStats(walletData: any): WalletStats {
-    const zero = { cash: 0, gameCoins: 0, newDayGameCoins: 0, computingPower: 0, aCoins: 0, oCoins: 0, vouchers: 0 };
+    const zero = { cash: 0, gameCoins: 0, newDayGameCoins: 0, computingPower: 0, aCoins: 0, vouchers: 0 };
     const stats: WalletStats = {
       todayIncome: { ...zero },
       weeklyIncome: { ...zero },
@@ -879,7 +874,7 @@ export class WalletSkill extends BaseSkill {
   }
 
   private createEmptyStats(): WalletStats {
-    const zero = { cash: 0, gameCoins: 0, newDayGameCoins: 0, computingPower: 0, aCoins: 0, oCoins: 0, vouchers: 0 };
+    const zero = { cash: 0, gameCoins: 0, newDayGameCoins: 0, computingPower: 0, aCoins: 0, vouchers: 0 };
     return {
       todayIncome: { ...zero },
       weeklyIncome: { ...zero },

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { fundPoolService } from '@/services/fundPoolService';
 import { FundPoolTransaction, FundPoolBalance, PublicFundPoolData } from '@/types/fundPool';
-import FundPoolOCoinMarket from '@/components/FundPoolOCoinMarket';
+const FundPoolOCoinMarket = () => null; // MVP v1.0 stub - OCoin removed
 
 export default function FundPool() {
   const [fundPoolData, setFundPoolData] = useState<PublicFundPoolData | null>(null);
