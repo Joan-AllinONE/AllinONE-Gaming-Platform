@@ -1,7 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { marketplaceService } from '@/services/marketplaceService';
-import { MarketItem, Transaction } from '@/types/marketplace';
+// MVP v1.0 stubs - marketplace/gamestore removed
+type MarketItem = any;
+type Transaction = any;
+const marketplaceService = { getUserInventory: async () => [], getUserTransactionHistory: async () => [], getUserListings: async () => [], delistItem: async () => {}, updateItemPrice: async () => {} } as any;
 import { useWallet } from '@/hooks/useWallet';
 import { useUserData } from '@/contexts/UserDataContext';
 import { TeamCenter } from '../components/TeamCenter';

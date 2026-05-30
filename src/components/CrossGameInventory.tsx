@@ -3,13 +3,14 @@
  * 在个人中心显示来自不同游戏的道具（包括 New Day），支持上架到市场
  */
 
-import React, { useState, useEffect } from 'react';
-import { marketplaceService } from '@/services/marketplaceService';
-import { allinone_marketplaceService } from '@/services/allinone_marketplaceService';
-import { newDayInventorySyncService } from '@/services/newDayInventorySync';
-import { newDayService } from '@/services/newDayService';
-import { newDayApiService } from '@/services/newDayApiService';
-import { inventoryApiService } from '@/services/inventoryApiService';
+import React from 'react';
+// MVP v1.0: component stubbed - will be replaced in B15
+const marketplaceService = {} as any;
+const allinone_marketplaceService = {} as any;
+const newDayInventorySyncService = {} as any;
+const newDayService = {} as any;
+const newDayApiService = {} as any;
+const inventoryApiService = {} as any;
 
 interface CrossGameItem {
   id: string;

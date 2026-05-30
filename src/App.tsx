@@ -7,13 +7,7 @@ import Match3Game from "@/pages/Match3Game";
 import ComputingDashboard from "@/pages/ComputingDashboard";
 import ComputingTest from "@/pages/ComputingTest";
 import GamePersonalCenter from "@/pages/GamePersonalCenter";
-import Marketplace from "@/pages/Marketplace";
-import OfficialStore from "@/pages/OfficialStore";
-import GameStoreCenter from "@/pages/GameStoreCenter";
-import GameStoreDetail from "@/pages/GameStoreDetail";
 import ComputingPowerPageSimple from "@/pages/ComputingPowerPageSimple";
-import FundPool from "@/pages/FundPool";
-import FundPoolDemo from "@/pages/FundPoolDemo";
 import PlatformManagement from "@/pages/PlatformManagement";
 import About from "@/pages/About";
 import CommunityRewards from "@/pages/CommunityRewards";
@@ -29,7 +23,6 @@ import NewDayIntegrationInit from '@/components/NewDayIntegrationInit';
 import VoteNotifications from '@/components/voucher-system/VoteNotifications';
 import PublishingCenter from '@/pages/PublishingCenter';
 import GamePlay from '@/pages/GamePlay';
-import GameStore from '@/pages/GameStore';
 import VoucherSystemPage from '@/pages/VoucherSystemPage';
 
 export default function App() {
@@ -54,12 +47,6 @@ export default function App() {
           <Route path="/computing-test" element={<ComputingTest />} />
           <Route path="/computing-power" element={<GamePersonalCenter />} />
           <Route path="/computing-power-simple" element={<ComputingPowerPageSimple />} />
-          <Route path="/marketplace" element={<Marketplace />} />
-          <Route path="/official-store" element={<OfficialStore />} />
-          <Route path="/game-store" element={<GameStoreCenter />} />
-          <Route path="/game-store/store/:storeId" element={<GameStoreDetail />} />
-          <Route path="/fund-pool" element={<FundPool />} />
-          <Route path="/fund-pool-demo" element={<FundPoolDemo />} />
           <Route path="/platform-management" element={<PlatformManagement />} />
           <Route path="/about" element={<About />} />
           <Route path="/community-rewards" element={<CommunityRewards />} />
@@ -67,7 +54,6 @@ export default function App() {
           <Route path="/trading-system" element={<TradingSystem />} />
           <Route path="/publishing-center" element={<PublishingCenter />} />
           <Route path="/game/:gameId" element={<GamePlay />} />
-          <Route path="/game-store/:gameId" element={<GameStore />} />
           <Route path="/voucher-system" element={<VoucherSystemPage />} />
             </Routes>
             </PlatformManagementProvider>

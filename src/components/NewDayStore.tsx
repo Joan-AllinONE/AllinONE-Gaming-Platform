@@ -4,7 +4,8 @@
  */
 
 import { useState, useEffect } from 'react';
-import { officialStoreService } from '@/services/officialStoreService';
+// MVP v1.0 stub - officialStoreService removed
+const officialStoreService = { getNewDayStoreItems: async () => [], purchaseNewDayItem: async () => {} } as any;
 import {
   NewDayStoreItem,
   NewDayItemType,
