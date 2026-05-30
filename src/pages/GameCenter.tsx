@@ -218,9 +218,9 @@ export default function GameCenter() {
     let userId: string | null = null;
     let userName: string = '玩家';
 
-    if (currentUser?.userId) {
-      userId = currentUser.userId;
-      userName = currentUser.username || '玩家';
+    if (currentUser?.uid) {
+      userId = currentUser.uid;
+      userName = currentUser.nickname || '玩家';
     } else {
       // 与 Match3Game 一致的 ID 解析逻辑
       const voucherGuestId = localStorage.getItem('voucher_guest_id');

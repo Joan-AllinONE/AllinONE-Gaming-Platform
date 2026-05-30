@@ -1,91 +1,132 @@
-import { createContext, useState, ReactNode, useEffect } from 'react';
-import { TestAccount } from '@/data/testAccounts';
-const crossPlatformAuthService = { clearToken: () => {} } as any;
+/**
+ * AuthContext - MVP v1.0 认证上下文
+ * 桥接 AuthSkill（CloudBase Auth）与 React 组件层。
+ */
+
+import { createContext, useState, useEffect, ReactNode, useCallback } from 'react';
+import { useContext } from 'react';
+import { authSkill, UserProfile } from '@/skills/auth/AuthSkill';
+
+export interface AuthUser {
+  id: string;
+  uid: string;
+  username: string;
+  email?: string;
+  nickname: string;
+  avatar?: string;
+  role: string;
+  gameCoins: number;
+  aCoins: number;
+}
 
 interface AuthContextType {
   isAuthenticated: boolean;
-  currentUser: TestAccount | null;
+  currentUser: AuthUser | null;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<{ success: boolean; error?: string }>;
+  register: (email: string, password: string, nickname: string) => Promise<{ success: boolean; error?: string }>;
+  logout: () => Promise<void>;
+  // 向后兼容旧 Login 页面
   setIsAuthenticated: (value: boolean) => void;
-  setCurrentUser: (user: TestAccount | null) => void;
-  logout: () => void;
+  setCurrentUser: (user: AuthUser | null) => void;
 }
 
 export const AuthContext = createContext<AuthContextType>({
   isAuthenticated: false,
   currentUser: null,
+  isLoading: true,
+  login: async () => ({ success: false, error: 'Not init' }),
+  register: async () => ({ success: false, error: 'Not init' }),
+  logout: async () => {},
   setIsAuthenticated: () => {},
   setCurrentUser: () => {},
-  logout: () => {},
 });
 
-interface AuthProviderProps {
-  children: ReactNode;
-}
+const toAuthUser = (profile: UserProfile | null): AuthUser | null => {
+  if (!profile) return null;
+  return {
+    id: profile.uid,
+    uid: profile.uid,
+    username: profile.nickname,
+    email: profile.email,
+    nickname: profile.nickname,
+    avatar: profile.avatar,
+    role: profile.role,
+    gameCoins: profile.gameCoins,
+    aCoins: profile.aCoins,
+  };
+};
 
-export function AuthProvider({ children }: AuthProviderProps) {
+export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [currentUser, setCurrentUser] = useState<TestAccount | null>(null);
+  const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // 启动时清除之前的登录状态 - 要求用户主动登录
   useEffect(() => {
-    console.log('🧹 应用启动，清除之前的登录状态');
-    localStorage.removeItem('currentUser');
-    // 注意：不清除 newday_token 和 cross_platform_token
-    // 它们在用户成功登录后由 Login.tsx 生成
-  }, []);
+    const init = async () => {
+      try {
+        const result = await authSkill.getCurrentUser(undefined as never, {} as any);
+        const user = toAuthUser(result.user);
+        setCurrentUser(user);
+        setIsAuthenticated(!!user);
+      } catch {
+        const saved = localStorage.getItem('allinone_user');
+        if (saved) {
+          try {
+            const user = toAuthUser(JSON.parse(saved));
+            setCurrentUser(user);
+            setIsAuthenticated(true);
+          } catch { /* ignore */ }
+        }
+      }
+      setIsLoading(false);
+    };
 
-  // 监听 localStorage 变化，同步更新 AuthContext 状态
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const savedUser = localStorage.getItem('currentUser');
-      if (savedUser) {
+    init();
+
+    authSkill.addStateListener((profile) => {
+      const user = toAuthUser(profile);
+      setCurrentUser(user);
+      setIsAuthenticated(!!user);
+    });
+
+    const onStorage = () => {
+      const saved = localStorage.getItem('allinone_user');
+      if (saved) {
         try {
-          const user = JSON.parse(savedUser);
+          const user = toAuthUser(JSON.parse(saved));
           setCurrentUser(user);
           setIsAuthenticated(true);
-        } catch (e) {
-          console.error('Failed to parse currentUser:', e);
-        }
-      } else {
-        setCurrentUser(null);
-        setIsAuthenticated(false);
+        } catch { /* ignore */ }
       }
     };
-
-    // 初始检查（此时应该已经被上面的 useEffect 清除了）
-    handleStorageChange();
-
-    // 监听 storage 事件（其他标签页的变化）
-    window.addEventListener('storage', handleStorageChange);
-    
-    // 创建自定义事件监听器（同一标签页的变化）
-    const customListener = () => handleStorageChange();
-    window.addEventListener('localStorageChange', customListener);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('localStorageChange', customListener);
-    };
+    window.addEventListener('allinoneAuthChange', onStorage);
+    return () => window.removeEventListener('allinoneAuthChange', onStorage);
   }, []);
 
-  const logout = () => {
-    setIsAuthenticated(false);
+  const login = useCallback(async (email: string, password: string) => {
+    const r = await authSkill.login({ email, password }, {} as any);
+    return { success: r.success, error: r.error };
+  }, []);
+
+  const register = useCallback(async (email: string, password: string, nickname: string) => {
+    const r = await authSkill.register({ email, password, nickname }, {} as any);
+    return { success: r.success, error: r.error };
+  }, []);
+
+  const logout = useCallback(async () => {
+    await authSkill.logout({} as never, {} as any);
     setCurrentUser(null);
-    localStorage.removeItem('currentUser');
-    crossPlatformAuthService.clearToken(); // 清除 New Day token
-  };
+    setIsAuthenticated(false);
+  }, []);
 
   return (
-    <AuthContext.Provider 
-      value={{
-        isAuthenticated, 
-        currentUser,
-        setIsAuthenticated, 
-        setCurrentUser,
-        logout 
-      }}
-    >
+    <AuthContext.Provider value={{ isAuthenticated, currentUser, isLoading, login, register, logout, setIsAuthenticated, setCurrentUser }}>
       {children}
     </AuthContext.Provider>
   );
+}
+
+export function useAuth() {
+  return useContext(AuthContext);
 }

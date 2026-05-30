@@ -35,8 +35,10 @@ export default function Login() {
           // 触发自定义事件，通知 AuthContext 更新状态
           window.dispatchEvent(new CustomEvent('localStorageChange'));
           
-          setCurrentUser(account);
+          setCurrentUser(account as any);
           setIsAuthenticated(true);
+          navigate('/');
+          
           
           // 登录 New Day API（CORS 已修复）
           try {

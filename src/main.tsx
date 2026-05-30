@@ -5,7 +5,7 @@ import { Toaster } from 'sonner';
 import App from "./App.tsx";
 import "./index.css";
 import { initCloudBase } from "./services/cloudbase.ts";
-import { voucherItemService } from "./services/voucherItemService.ts";
+import { initializeSkills } from "./skills/index.ts";
 
 const basename = '/AllinONE-Gaming-Platform';
 
@@ -14,8 +14,10 @@ initCloudBase().catch((err) => {
   console.warn('CloudBase 初始化失败:', err.message);
 });
 
-// 初始化提案自动执行监听器
-voucherItemService.initAutoExecuteListener();
+// 初始化 Skill 引擎（异步不阻塞应用）
+initializeSkills().catch((err) => {
+  console.warn('Skills init failed:', err);
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
