@@ -12,7 +12,8 @@
     "setup:db": "node scripts/setup-database.js",
     "db:init": "node cloudfunctions/db_init/init.cjs",
     "start": "node server.js",
-    "deploy": "npm run build:client && gh-pages -d dist/static"
+    "deploy": "npm run build:client && gh-pages -d dist/static",
+    "deploy:cloudbase": "npm run build:client && tcb hosting deploy dist/static -e allinonegaming-d4gmsmrzz573264f6"
   },
   "dependencies": {
     "@cloudbase/js-sdk": "^2.25.7",
